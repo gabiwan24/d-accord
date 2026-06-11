@@ -27,19 +27,18 @@ export function usePracticeSession(
 
   const advance = useCallback(() => {
     setPulse(true)
-    setTimeout(() => {
-      setPulse(false)
-      goNext()
-    }, 300)
+    goNext()
+    setTimeout(() => setPulse(false), 300)
   }, [goNext])
+
+  const advanceRef = useRef(advance)
+  advanceRef.current = advance
 
   const skipToNext = useCallback(() => {
     goNext()
   }, [goNext])
 
   useEffect(() => {
-    if (!current) return
-
     if (!micEnabled) {
       detectorRef.current?.stop()
       detectorRef.current = null
@@ -50,18 +49,22 @@ export function usePracticeSession(
 
     const detector = createAudioDetector({
       onStatusChange: setMicStatus,
-      onCorrect: advance,
+      onCorrect: () => advanceRef.current(),
       onError: setMicError,
     })
     detectorRef.current = detector
-    detector.setExpectedChord(current, tuningId)
     void detector.start()
 
     return () => {
       detector.stop()
       detectorRef.current = null
     }
-  }, [current, tuningId, advance, micEnabled])
+  }, [micEnabled])
+
+  useEffect(() => {
+    if (!current || !detectorRef.current) return
+    detectorRef.current.setExpectedChord(current, tuningId)
+  }, [current, tuningId])
 
   return {
     current,

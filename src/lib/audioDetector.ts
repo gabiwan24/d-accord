@@ -18,18 +18,45 @@ type ExpectedTarget =
 
 const STABLE_MATCHES_REQUIRED = 4
 const MIN_ENERGY = 0.0001
+/** Nach Treffer: erst wieder zählen, wenn der Ton abgeklungen ist. */
+const RELEASE_FRAMES_REQUIRED = 12
 
 export function createAudioDetector(callbacks: DetectorCallbacks) {
   let expected: ExpectedTarget | null = null
   let stableMatchCount = 0
   let consecutiveLowEnergy = 0
+  let awaitingRelease = false
+
+  const resetMatchState = () => {
+    stableMatchCount = 0
+    consecutiveLowEnergy = 0
+    awaitingRelease = false
+  }
 
   const detector = PitchPlease.create({
     stabilityFrames: 5,
     onUpdate: (data) => {
       if (!expected) return
 
-      if (data.maxEnergy < MIN_ENERGY) {
+      const isQuiet = data.maxEnergy < MIN_ENERGY
+
+      if (awaitingRelease) {
+        if (isQuiet) {
+          consecutiveLowEnergy++
+          if (consecutiveLowEnergy >= RELEASE_FRAMES_REQUIRED) {
+            awaitingRelease = false
+            consecutiveLowEnergy = 0
+            stableMatchCount = 0
+            callbacks.onStatusChange('listening')
+          }
+        } else {
+          consecutiveLowEnergy = 0
+          callbacks.onStatusChange('correct')
+        }
+        return
+      }
+
+      if (isQuiet) {
         consecutiveLowEnergy++
         if (consecutiveLowEnergy > 10) {
           callbacks.onStatusChange('listening')
@@ -60,6 +87,8 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
         if (stableMatchCount >= STABLE_MATCHES_REQUIRED) {
           callbacks.onStatusChange('correct')
           stableMatchCount = 0
+          awaitingRelease = true
+          consecutiveLowEnergy = 0
           callbacks.onCorrect()
         } else {
           callbacks.onStatusChange('almost')
@@ -77,8 +106,7 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
 
   return {
     async start() {
-      stableMatchCount = 0
-      consecutiveLowEnergy = 0
+      resetMatchState()
       callbacks.onStatusChange('listening')
       await detector.start()
     },
@@ -88,13 +116,17 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
     },
     setExpectedChord(chord: UkuleleChord, tuningId: TuningId) {
       expected = { kind: 'chord', chord, tuningId }
-      stableMatchCount = 0
-      consecutiveLowEnergy = 0
+      if (!awaitingRelease) {
+        stableMatchCount = 0
+        consecutiveLowEnergy = 0
+      }
     },
     setExpectedNote(pitchClass: number) {
       expected = { kind: 'note', pitchClass }
-      stableMatchCount = 0
-      consecutiveLowEnergy = 0
+      if (!awaitingRelease) {
+        stableMatchCount = 0
+        consecutiveLowEnergy = 0
+      }
     },
   }
 }
