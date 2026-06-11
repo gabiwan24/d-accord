@@ -1,0 +1,96 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-cream: #f5f0e8;
+  --color-ink: #1a1a1a;
+  --color-muted: #888888;
+  --color-accent-pink: #e8a0a0;
+  --color-accent-grey: #a0b0c0;
+  --color-accent-purple: #b0a0d0;
+  --color-accent-mint: #a0d0c0;
+  --color-accent-peach: #e8c4a0;
+  --color-accent-blue: #a0c0e8;
+  --color-accent-sage: #b0d0a0;
+  --color-accent-lavender: #c0a0e8;
+  --color-accent-coral: #e8b0a0;
+  --color-success: #6aab6a;
+  --color-finger-1: #d4473a;
+  --color-finger-1-label: #fffaf5;
+  --color-finger-2: #1d6f6a;
+  --color-finger-2-label: #f0faf9;
+  --color-finger-3: #a87408;
+  --color-finger-3-label: #fffaf0;
+  --color-finger-4: #5541c7;
+  --color-finger-4-label: #f5f3ff;
+  --app-tab-bar-height: 3rem;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+.safe-top {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+
+.safe-bottom {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.setup-scroll-pad {
+  padding-bottom: calc(10rem + env(safe-area-inset-bottom, 0px));
+}
+
+.above-tab-bar {
+  bottom: calc(var(--app-tab-bar-height) + env(safe-area-inset-bottom, 0px));
+}
+
+.content-tab-bar-pad {
+  padding-bottom: calc(var(--app-tab-bar-height) + env(safe-area-inset-bottom, 0px));
+}
+
+.chord-finger-label {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  text-anchor: middle;
+  dominant-baseline: central;
+  alignment-baseline: central;
+  pointer-events: none;
+  user-select: none;
+}
+
+.finger-pulse-glow {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.touch-target {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  touch-action: manipulation;
+}
+
+@keyframes accent-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    background-color: var(--color-success);
+  }
+}
+
+.accent-pulse {
+  animation: accent-pulse 300ms ease-in-out;
+}
