@@ -368,12 +368,12 @@ describe('FINGER_CHART', () => {
 })
 
 describe('chordMatches', () => {
-  it('erkennt Am per Name', () => {
+  it('erkennt Am per Name und Pitch Classes', () => {
     const am = getChord('Am')!
     expect(
       chordMatches({
         detectedName: 'Am',
-        detectedPitchClasses: [],
+        detectedPitchClasses: am.shapes.highG.pitchClasses,
         expected: am,
         tuningId: 'highG',
       }),
@@ -385,11 +385,36 @@ describe('chordMatches', () => {
     expect(
       chordMatches({
         detectedName: 'B',
-        detectedPitchClasses: [],
+        detectedPitchClasses: h.shapes.highG.pitchClasses,
         expected: h,
         tuningId: 'highG',
       }),
     ).toBe(true)
+  })
+
+  it('lehnt Namen ohne passende Pitch Classes ab', () => {
+    const c = getChord('C')!
+    expect(
+      chordMatches({
+        detectedName: 'C',
+        detectedPitchClasses: [],
+        expected: c,
+        tuningId: 'highG',
+      }),
+    ).toBe(false)
+  })
+
+  it('lehnt falschen Akkord ab', () => {
+    const c = getChord('C')!
+    const am = getChord('Am')!
+    expect(
+      chordMatches({
+        detectedName: null,
+        detectedPitchClasses: am.shapes.highG.pitchClasses,
+        expected: c,
+        tuningId: 'highG',
+      }),
+    ).toBe(false)
   })
 
   it('enthält 56 Akkorde in 7 Tonarten', () => {
@@ -403,7 +428,7 @@ describe('chordMatches', () => {
     expect(
       chordMatches({
         detectedName: null,
-        detectedPitchClasses: [0, 4, 7],
+        detectedPitchClasses: c.shapes.highG.pitchClasses,
         expected: c,
         tuningId: 'highG',
       }),

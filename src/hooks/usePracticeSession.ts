@@ -35,6 +35,7 @@ export function usePracticeSession(
   advanceRef.current = advance
 
   const skipToNext = useCallback(() => {
+    detectorRef.current?.prepareNextTarget()
     goNext()
   }, [goNext])
 
@@ -62,9 +63,9 @@ export function usePracticeSession(
   }, [micEnabled])
 
   useEffect(() => {
-    if (!current || !detectorRef.current) return
+    if (!micEnabled || !current || !detectorRef.current) return
     detectorRef.current.setExpectedChord(current, tuningId)
-  }, [current, tuningId])
+  }, [current, tuningId, micEnabled])
 
   return {
     current,

@@ -35,6 +35,7 @@ export function useNotePracticeSession(
   advanceRef.current = advance
 
   const skipToNext = useCallback(() => {
+    detectorRef.current?.prepareNextTarget()
     goNext()
   }, [goNext])
 
@@ -62,9 +63,9 @@ export function useNotePracticeSession(
   }, [micEnabled])
 
   useEffect(() => {
-    if (!current || !detectorRef.current) return
+    if (!micEnabled || !current || !detectorRef.current) return
     detectorRef.current.setExpectedNote(current.pitchClass)
-  }, [current])
+  }, [current, micEnabled])
 
   return {
     current,

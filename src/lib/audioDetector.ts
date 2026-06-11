@@ -16,21 +16,25 @@ type ExpectedTarget =
   | { kind: 'chord'; chord: UkuleleChord; tuningId: TuningId }
   | { kind: 'note'; pitchClass: number }
 
-const STABLE_MATCHES_REQUIRED = 4
-const MIN_ENERGY = 0.0001
-/** Nach Treffer: erst wieder zählen, wenn der Ton abgeklungen ist. */
-const RELEASE_FRAMES_REQUIRED = 12
+type Phase = 'armed' | 'cooldown'
+
+const STABLE_MATCHES_REQUIRED = 5
+const MIN_ENERGY = 0.002
+const COOLDOWN_MS = 900
+const RELEASE_QUIET_FRAMES = 15
 
 export function createAudioDetector(callbacks: DetectorCallbacks) {
   let expected: ExpectedTarget | null = null
   let stableMatchCount = 0
-  let consecutiveLowEnergy = 0
-  let awaitingRelease = false
+  let consecutiveQuiet = 0
+  let phase: Phase = 'armed'
+  let cooldownUntil = 0
 
   const resetMatchState = () => {
     stableMatchCount = 0
-    consecutiveLowEnergy = 0
-    awaitingRelease = false
+    consecutiveQuiet = 0
+    phase = 'armed'
+    cooldownUntil = 0
   }
 
   const detector = PitchPlease.create({
@@ -38,38 +42,34 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
     onUpdate: (data) => {
       if (!expected) return
 
+      const now = performance.now()
       const isQuiet = data.maxEnergy < MIN_ENERGY
 
-      if (awaitingRelease) {
-        if (isQuiet) {
-          consecutiveLowEnergy++
-          if (consecutiveLowEnergy >= RELEASE_FRAMES_REQUIRED) {
-            awaitingRelease = false
-            consecutiveLowEnergy = 0
-            stableMatchCount = 0
-            callbacks.onStatusChange('listening')
-          }
+      if (phase === 'cooldown') {
+        if (isQuiet) consecutiveQuiet++
+        else consecutiveQuiet = 0
+
+        if (now >= cooldownUntil && consecutiveQuiet >= RELEASE_QUIET_FRAMES) {
+          phase = 'armed'
+          consecutiveQuiet = 0
+          stableMatchCount = 0
+          callbacks.onStatusChange('listening')
         } else {
-          consecutiveLowEnergy = 0
           callbacks.onStatusChange('correct')
         }
         return
       }
 
-      if (isQuiet) {
-        consecutiveLowEnergy++
-        if (consecutiveLowEnergy > 10) {
-          callbacks.onStatusChange('listening')
-        }
+      if (isQuiet || !data.stable) {
         stableMatchCount = 0
+        if (isQuiet) callbacks.onStatusChange('listening')
         return
       }
-      consecutiveLowEnergy = 0
 
       let matches = false
       if (expected.kind === 'chord') {
         matches = chordMatches({
-          detectedName: data.chord?.full ?? null,
+          detectedName: null,
           detectedPitchClasses: data.pitchClasses,
           expected: expected.chord,
           tuningId: expected.tuningId,
@@ -82,13 +82,14 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
         )
       }
 
-      if (matches && data.stable) {
+      if (matches) {
         stableMatchCount++
         if (stableMatchCount >= STABLE_MATCHES_REQUIRED) {
-          callbacks.onStatusChange('correct')
+          phase = 'cooldown'
+          cooldownUntil = now + COOLDOWN_MS
+          consecutiveQuiet = 0
           stableMatchCount = 0
-          awaitingRelease = true
-          consecutiveLowEnergy = 0
+          callbacks.onStatusChange('correct')
           callbacks.onCorrect()
         } else {
           callbacks.onStatusChange('almost')
@@ -112,20 +113,25 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
     },
     stop() {
       detector.stop()
+      resetMatchState()
       callbacks.onStatusChange('idle')
+    },
+    prepareNextTarget() {
+      resetMatchState()
+      callbacks.onStatusChange('listening')
     },
     setExpectedChord(chord: UkuleleChord, tuningId: TuningId) {
       expected = { kind: 'chord', chord, tuningId }
-      if (!awaitingRelease) {
+      if (phase === 'armed') {
         stableMatchCount = 0
-        consecutiveLowEnergy = 0
+        consecutiveQuiet = 0
       }
     },
     setExpectedNote(pitchClass: number) {
       expected = { kind: 'note', pitchClass }
-      if (!awaitingRelease) {
+      if (phase === 'armed') {
         stableMatchCount = 0
-        consecutiveLowEnergy = 0
+        consecutiveQuiet = 0
       }
     },
   }

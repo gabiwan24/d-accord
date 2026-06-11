@@ -108,9 +108,22 @@ function normalizeChordName(name: string): string {
   return mapped
 }
 
-function pitchClassOverlap(expected: number[], detected: number[]): number {
-  const detectedSet = new Set(detected)
-  return expected.filter((pc) => detectedSet.has(pc)).length
+function normalizePc(pc: number): number {
+  return ((pc % 12) + 12) % 12
+}
+
+export function pitchClassesMatch(
+  expected: number[],
+  detected: number[],
+): boolean {
+  const expectedUnique = [...new Set(expected.map(normalizePc))]
+  if (expectedUnique.length === 0 || detected.length === 0) return false
+
+  const detectedSet = new Set(detected.map(normalizePc))
+  const matched = expectedUnique.filter((pc) => detectedSet.has(pc)).length
+  const allowMissing = expectedUnique.length >= 4 ? 1 : 0
+
+  return matched >= expectedUnique.length - allowMissing
 }
 
 export interface MatchInput {
@@ -124,21 +137,16 @@ export function chordMatches(input: MatchInput): boolean {
   const { detectedName, detectedPitchClasses, expected, tuningId } = input
   const shape = expected.shapes[tuningId]
 
-  if (detectedName) {
-    const normalized = normalizeChordName(detectedName)
-    if (expected.matchNames.some((n) => normalizeChordName(n) === normalized)) {
-      return true
-    }
-    if (normalizeChordName(expected.displayName) === normalized) {
-      return true
-    }
-  }
-
-  if (detectedPitchClasses.length === 0 || shape.pitchClasses.length === 0) {
+  if (!pitchClassesMatch(shape.pitchClasses, detectedPitchClasses)) {
     return false
   }
 
-  const overlap = pitchClassOverlap(shape.pitchClasses, detectedPitchClasses)
-  const threshold = Math.max(2, Math.ceil((shape.pitchClasses.length * 2) / 3))
-  return overlap >= threshold
+  if (!detectedName) return true
+
+  const normalized = normalizeChordName(detectedName)
+  if (expected.matchNames.some((n) => normalizeChordName(n) === normalized)) {
+    return true
+  }
+
+  return normalizeChordName(expected.displayName) === normalized
 }
