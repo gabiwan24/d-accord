@@ -20,6 +20,8 @@ export function usePracticeSession(
   const [micStatus, setMicStatus] = useState<MicStatus>('idle')
   const [micError, setMicError] = useState<string | null>(null)
   const [pulse, setPulse] = useState(false)
+  const [detectedPitchClasses, setDetectedPitchClasses] = useState<number[] | null>(null)
+  const [sessionChordIds, setSessionChordIds] = useState<Set<string>>(new Set())
   const detectorRef = useRef<AudioDetector | null>(null)
   const pulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { micEnabled } = useMicEnabled()
@@ -27,8 +29,21 @@ export function usePracticeSession(
   const current = currentId ? getChord(currentId) : undefined
   const next = nextId ? getChord(nextId) : undefined
 
+  // Track which chords appeared in this session
+  useEffect(() => {
+    if (currentId) {
+      setSessionChordIds((prev) => {
+        if (prev.has(currentId)) return prev
+        const next = new Set(prev)
+        next.add(currentId)
+        return next
+      })
+    }
+  }, [currentId])
+
   const advance = useCallback(() => {
     if (currentId) recordAttempt(currentId, true)
+    setDetectedPitchClasses(null)
     setPulse(true)
     goNext()
     if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current)
@@ -46,6 +61,7 @@ export function usePracticeSession(
 
   const skipToNext = useCallback(() => {
     detectorRef.current?.prepareNextTarget()
+    setDetectedPitchClasses(null)
     goNext()
   }, [goNext])
 
@@ -55,13 +71,20 @@ export function usePracticeSession(
       detectorRef.current = null
       setMicStatus('idle')
       setMicError(null)
+      setDetectedPitchClasses(null)
       return
     }
 
     const detector = createAudioDetector({
-      onStatusChange: setMicStatus,
+      onStatusChange: (status) => {
+        setMicStatus(status)
+        if (status === 'idle' || status === 'correct') {
+          setDetectedPitchClasses(null)
+        }
+      },
       onCorrect: () => advanceRef.current(),
       onError: setMicError,
+      onPartialMatch: (pcs) => setDetectedPitchClasses(pcs),
     })
     detectorRef.current = detector
     void detector.start()
@@ -86,5 +109,7 @@ export function usePracticeSession(
     micError,
     pulse,
     skipToNext,
+    detectedPitchClasses,
+    sessionChordIds,
   }
 }
