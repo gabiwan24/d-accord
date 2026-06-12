@@ -32,6 +32,9 @@ export function TunerScreen({ active }: TunerScreenProps) {
     ? `${reading.cents > 0 ? '+' : ''}${Math.round(reading.cents)} Cent`
     : '—'
 
+  const allTuned =
+    stringTargets.length > 0 && tunedStrings.size === stringTargets.length
+
   return (
     <div className="mx-auto flex min-h-full max-w-lg flex-col px-4 pt-6 content-tab-bar-pad">
       <div className="mb-6 flex items-center justify-between gap-4">
@@ -64,6 +67,12 @@ export function TunerScreen({ active }: TunerScreenProps) {
           </p>
         </div>
       </div>
+
+      {allTuned && (
+        <div className="rounded-lg bg-success/12 px-4 py-3 text-center text-sm font-medium text-success ring-1 ring-success/30">
+          ✓ Alle Saiten gestimmt
+        </div>
+      )}
 
       <div className="space-y-1">
         {stringTargets.map((target) => (
