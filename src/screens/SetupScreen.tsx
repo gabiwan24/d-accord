@@ -31,9 +31,10 @@ export interface PracticeSessionConfig {
 
 interface SetupScreenProps {
   onStart: (config: PracticeSessionConfig) => void
+  onOpenHelp?: () => void
 }
 
-export function SetupScreen({ onStart }: SetupScreenProps) {
+export function SetupScreen({ onStart, onOpenHelp }: SetupScreenProps) {
   const [mode, setMode] = useState<PracticeMode>(() => loadPracticeMode())
   const [tuningId, setTuningId] = useState<TuningId>(() => loadTuning())
   const [chordPreset, setChordPreset] = useState<ChordPresetId>(() =>
@@ -122,9 +123,21 @@ export function SetupScreen({ onStart }: SetupScreenProps) {
   return (
     <div className="mx-auto flex min-h-dvh max-w-2xl flex-col">
       <header className="safe-top sticky top-0 z-20 border-b border-ink/10 bg-cream/95 px-3 backdrop-blur-sm sm:px-4">
-        <h1 className="py-2 text-base font-normal text-ink sm:text-lg">
-          Ukulele Trainer
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="py-2 text-base font-normal text-ink sm:text-lg">
+            Ukulele Trainer
+          </h1>
+          {onOpenHelp && (
+            <button
+              type="button"
+              onClick={onOpenHelp}
+              aria-label="Hilfe anzeigen"
+              className="flex min-h-9 min-w-9 items-center justify-center rounded-full text-sm text-muted transition-opacity active:opacity-60"
+            >
+              ?
+            </button>
+          )}
+        </div>
 
         <div className="space-y-2 pb-3">
           <ModeSelector value={mode} onChange={handleModeChange} />

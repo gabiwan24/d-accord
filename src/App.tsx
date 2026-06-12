@@ -102,7 +102,7 @@ export default function App() {
       )
     }
 
-    return <SetupScreen onStart={handleStart} />
+    return <SetupScreen onStart={handleStart} onOpenHelp={handleOpenHelp} />
   }
 
   return (
