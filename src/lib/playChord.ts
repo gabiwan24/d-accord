@@ -1,5 +1,7 @@
 import type { ChordShape } from '../data/chords'
 import { TUNINGS, type TuningId } from '../data/tunings'
+import { suppressDetection } from './detectionSuppress'
+import { midiToHz } from './musicMath'
 
 let sharedContext: AudioContext | null = null
 let masterBus: GainNode | null = null
@@ -22,8 +24,6 @@ function getMasterBus(ctx: AudioContext): GainNode {
   }
   return masterBus
 }
-
-import { midiToHz } from './musicMath'
 
 /**
  * Karplus-Strong mit weicher Anregung und stärkerer Tiefenfilterung.
@@ -104,10 +104,15 @@ function playString(
   source.start(startTime)
 }
 
+/** Saiten klingen ~3 s; etwas Puffer für Lautsprecher→Mikrofon. */
+const PREVIEW_SUPPRESS_MS = 3400
+
 export async function playChordShape(
   shape: ChordShape,
   tuningId: TuningId,
 ): Promise<void> {
+  suppressDetection(PREVIEW_SUPPRESS_MS)
+
   const ctx = getContext()
   if (ctx.state === 'suspended') {
     await ctx.resume()

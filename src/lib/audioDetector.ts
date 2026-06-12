@@ -1,5 +1,6 @@
 import PitchPlease from '@markusstrasser/pitchplease'
 import { chordMatches } from './chordMatcher'
+import { isDetectionSuppressed } from './detectionSuppress'
 import { noteMatches } from './noteMatcher'
 import type { UkuleleChord } from '../data/chords'
 import type { TuningId } from '../data/tunings'
@@ -41,6 +42,12 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
     stabilityFrames: 5,
     onUpdate: (data) => {
       if (!expected) return
+
+      if (isDetectionSuppressed()) {
+        stableMatchCount = 0
+        consecutiveQuiet = 0
+        return
+      }
 
       const now = performance.now()
       const isQuiet = data.maxEnergy < MIN_ENERGY
