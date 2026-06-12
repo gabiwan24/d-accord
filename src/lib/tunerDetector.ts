@@ -58,7 +58,7 @@ export function createTunerController(callbacks: TunerCallbacks): TunerControlle
     manualStringIndex: null,
   }
   let consecutiveLowEnergy = 0
-  const stringGate = new StableStringGate(6)
+  const stringGate = new StableStringGate()
 
   const detector = PitchPlease.create({
     stabilityFrames: 6,
