@@ -11,6 +11,7 @@ export interface DetectorCallbacks {
   onStatusChange: (status: MicStatus) => void
   onCorrect: () => void
   onError: (message: string) => void
+  onPartialMatch?: (detectedPitchClasses: number[]) => void
 }
 
 type ExpectedTarget =
@@ -103,6 +104,9 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
         }
       } else {
         stableMatchCount = 0
+        if (!isQuiet && data.stable && expected.kind === 'chord') {
+          callbacks.onPartialMatch?.(data.pitchClasses)
+        }
         callbacks.onStatusChange('listening')
       }
     },
