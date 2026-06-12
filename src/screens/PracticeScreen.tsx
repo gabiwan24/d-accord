@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { getChord } from '../data/chords'
 import { TUNINGS, type TuningId } from '../data/tunings'
 import { ChordCard } from '../components/ChordCard'
@@ -13,7 +13,7 @@ import { getAccuracy, getAllStats } from '../lib/practiceStats'
 interface PracticeScreenProps {
   tuningId: TuningId
   chordIds: string[]
-  onDone: () => void
+  onDone: (result: { count: number; sessionChordIds: Set<string> }) => void
 }
 
 function AccuracyBar({ chordId }: { chordId: string }) {
@@ -63,11 +63,26 @@ export function PracticeScreen({
     micError,
     pulse,
     skipToNext,
+    detectedPitchClasses,
+    sessionChordIds,
   } = usePracticeSession(chordIds, tuningId, getChord)
 
   const { micEnabled } = useMicEnabled()
 
   const shape = current?.shapes[tuningId]
+
+  const missingStringIndices = useMemo(() => {
+    if (!detectedPitchClasses || detectedPitchClasses.length === 0 || !shape) return null
+    const detected = new Set(detectedPitchClasses.map((pc) => ((pc % 12) + 12) % 12))
+    const strings = TUNINGS[tuningId].strings
+    const missing = new Set<number>()
+    shape.frets.forEach((fret, i) => {
+      if (fret === null) return
+      const pc = ((strings[i].midi + fret) % 12 + 12) % 12
+      if (!detected.has(pc)) missing.add(i)
+    })
+    return missing.size > 0 ? missing : null
+  }, [detectedPitchClasses, shape, tuningId])
 
   if (!current || !shape) {
     return (
@@ -95,7 +110,7 @@ export function PracticeScreen({
         </span>
         <button
           type="button"
-          onClick={onDone}
+          onClick={() => onDone({ count, sessionChordIds })}
           className="min-h-11 underline underline-offset-2"
         >
           Beenden
@@ -113,6 +128,7 @@ export function PracticeScreen({
           animateFingers
           showLabel
           onPlay={() => void playChordShape(shape, tuningId)}
+          missingStringIndices={missingStringIndices}
         />
 
         <button
