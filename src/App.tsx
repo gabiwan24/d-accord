@@ -7,14 +7,23 @@ import type { PracticeSessionConfig } from './screens/SetupScreen'
 import { NotePracticeScreen } from './screens/NotePracticeScreen'
 import { PracticeScreen } from './screens/PracticeScreen'
 import { SetupScreen } from './screens/SetupScreen'
+import { SummaryScreen } from './screens/SummaryScreen'
 import { TunerScreen } from './screens/TunerScreen'
 
-type Screen = 'setup' | 'practice'
+type Screen = 'setup' | 'practice' | 'summary'
+
+interface SummaryData {
+  count: number
+  sessionChordIds: Set<string>
+  config: PracticeSessionConfig
+}
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('practice')
   const [screen, setScreen] = useState<Screen>('setup')
   const [session, setSession] = useState<PracticeSessionConfig | null>(null)
+  const [summary, setSummary] = useState<SummaryData | null>(null)
+  const [showOnboarding, setShowOnboarding] = useState(false) // used by Task 7 (onboarding)
 
   useEffect(() => {
     const handleVisibility = () => {
@@ -34,9 +43,43 @@ export default function App() {
     setSession(null)
   }
 
+  const handlePracticeDone = (result: { count: number; sessionChordIds: Set<string> }) => {
+    if (!session || session.mode !== 'chords') {
+      setScreen('setup')
+      setSession(null)
+      return
+    }
+    setSummary({ ...result, config: session })
+    setScreen('summary')
+  }
+
+  const handlePlayAgain = () => {
+    if (summary) handleStart(summary.config)
+  }
+
+  const handleSummaryDone = () => {
+    setScreen('setup')
+    setSession(null)
+    setSummary(null)
+  }
+
+  // handleOpenHelp and showOnboarding will be wired in Task 7 (onboarding modal)
+  const handleOpenHelp = () => setShowOnboarding(true)
+
   const renderContent = () => {
     if (activeTab === 'tuner') {
       return <TunerScreen active />
+    }
+
+    if (screen === 'summary' && summary) {
+      return (
+        <SummaryScreen
+          count={summary.count}
+          sessionChordIds={summary.sessionChordIds}
+          onPlayAgain={handlePlayAgain}
+          onDone={handleSummaryDone}
+        />
+      )
     }
 
     if (screen === 'practice' && session) {
@@ -54,7 +97,7 @@ export default function App() {
         <PracticeScreen
           tuningId={session.tuningId}
           chordIds={session.ids}
-          onDone={exitPractice}
+          onDone={handlePracticeDone}
         />
       )
     }
@@ -68,6 +111,8 @@ export default function App() {
         <div className="flex min-h-dvh flex-col">
           <main className="flex-1">{renderContent()}</main>
           <AppTabBar activeTab={activeTab} onChange={setActiveTab} />
+          {/* Onboarding modal placeholder — wired in Task 7 */}
+          {showOnboarding && <div aria-hidden onClick={handleOpenHelp} />}
         </div>
       </MicProvider>
     </ErrorBoundary>
