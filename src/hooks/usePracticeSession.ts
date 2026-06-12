@@ -7,6 +7,7 @@ import {
   type AudioDetector,
   type MicStatus,
 } from '../lib/audioDetector'
+import { getAccuracy, recordAttempt } from '../lib/practiceStats'
 import { useInfinitePracticeQueue } from './useInfinitePracticeQueue'
 
 export function usePracticeSession(
@@ -15,7 +16,7 @@ export function usePracticeSession(
   getChord: (id: string) => UkuleleChord | undefined,
 ) {
   const { currentId, nextId, goNext, count } =
-    useInfinitePracticeQueue(chordIds)
+    useInfinitePracticeQueue(chordIds, getAccuracy)
   const [micStatus, setMicStatus] = useState<MicStatus>('idle')
   const [micError, setMicError] = useState<string | null>(null)
   const [pulse, setPulse] = useState(false)
@@ -27,11 +28,12 @@ export function usePracticeSession(
   const next = nextId ? getChord(nextId) : undefined
 
   const advance = useCallback(() => {
+    if (currentId) recordAttempt(currentId, true)
     setPulse(true)
     goNext()
     if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current)
     pulseTimeoutRef.current = setTimeout(() => setPulse(false), 300)
-  }, [goNext])
+  }, [goNext, currentId])
 
   useEffect(() => {
     return () => {
@@ -79,6 +81,7 @@ export function usePracticeSession(
     current,
     next,
     count,
+    currentId,
     micStatus,
     micError,
     pulse,
