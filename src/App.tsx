@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AppTabBar, type AppTab } from './components/AppTabBar'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { OnboardingOverlay, hasSeenOnboarding } from './components/OnboardingOverlay'
 import { MicProvider } from './context/MicContext'
 import { closeAudioContext } from './lib/playChord'
 import type { PracticeSessionConfig } from './screens/SetupScreen'
@@ -23,7 +24,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('setup')
   const [session, setSession] = useState<PracticeSessionConfig | null>(null)
   const [summary, setSummary] = useState<SummaryData | null>(null)
-  const [showOnboarding, setShowOnboarding] = useState(false) // used by Task 7 (onboarding)
+  const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding())
 
   useEffect(() => {
     const handleVisibility = () => {
@@ -111,9 +112,10 @@ export default function App() {
         <div className="flex min-h-dvh flex-col">
           <main className="flex-1">{renderContent()}</main>
           <AppTabBar activeTab={activeTab} onChange={setActiveTab} />
-          {/* Onboarding modal placeholder — wired in Task 7 */}
-          {showOnboarding && <div aria-hidden onClick={handleOpenHelp} />}
         </div>
+        {showOnboarding && (
+          <OnboardingOverlay onClose={() => setShowOnboarding(false)} />
+        )}
       </MicProvider>
     </ErrorBoundary>
   )
