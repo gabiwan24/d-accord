@@ -4,6 +4,7 @@ import { isDesktopPointer, isEditableTarget } from '../lib/isDesktop'
 export function useMicKeyboardShortcut(onToggle: () => void) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (document.hidden) return
       if (!isDesktopPointer()) return
       if (event.defaultPrevented) return
       if (event.metaKey || event.ctrlKey || event.altKey) return
