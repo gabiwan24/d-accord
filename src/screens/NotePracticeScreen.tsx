@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { getNote } from '../data/notes'
 import { TUNINGS, type TuningId } from '../data/tunings'
 import { NoteCard } from '../components/NoteCard'
@@ -5,6 +6,7 @@ import { MicStatus } from '../components/MicStatus'
 import { useMicEnabled } from '../context/MicContext'
 import { useNotePracticeSession } from '../hooks/useNotePracticeSession'
 import { getNotePositions, positionLabel } from '../lib/notePositions'
+import { playNoteReference } from '../lib/playChord'
 
 interface NotePracticeScreenProps {
   tuningId: TuningId
@@ -17,6 +19,8 @@ export function NotePracticeScreen({
   noteIds,
   onDone,
 }: NotePracticeScreenProps) {
+  const [playing, setPlaying] = useState(false)
+
   const {
     current,
     next,
@@ -41,6 +45,13 @@ export function NotePracticeScreen({
   const nextPositions = next
     ? getNotePositions(tuningId, next.pitchClass)
     : []
+
+  const handlePlay = async () => {
+    if (playing) return
+    setPlaying(true)
+    await playNoteReference(current.pitchClass)
+    setTimeout(() => setPlaying(false), 1000)
+  }
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col px-4 pb-8 pt-6 content-tab-bar-pad">
@@ -67,6 +78,17 @@ export function NotePracticeScreen({
           size="lg"
           pulse={pulse}
         />
+
+        <button
+          type="button"
+          onClick={() => void handlePlay()}
+          disabled={playing}
+          aria-label="Beispiel spielen"
+          className="mt-3 flex min-h-11 min-w-11 items-center justify-center rounded-full text-xl text-muted transition-opacity active:opacity-60 disabled:opacity-30"
+        >
+          🔊
+        </button>
+
         <p className="mt-4 max-w-xs text-center text-xs text-muted">
           {positions.length} Positionen (Bund 0–12)
         </p>
