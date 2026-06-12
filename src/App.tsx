@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AppTabBar, type AppTab } from './components/AppTabBar'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { MicProvider } from './context/MicContext'
+import { closeAudioContext } from './lib/playChord'
 import type { PracticeSessionConfig } from './screens/SetupScreen'
 import { NotePracticeScreen } from './screens/NotePracticeScreen'
 import { PracticeScreen } from './screens/PracticeScreen'
@@ -13,6 +15,14 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('practice')
   const [screen, setScreen] = useState<Screen>('setup')
   const [session, setSession] = useState<PracticeSessionConfig | null>(null)
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) closeAudioContext()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [])
 
   const handleStart = (config: PracticeSessionConfig) => {
     setSession(config)
@@ -53,11 +63,13 @@ export default function App() {
   }
 
   return (
-    <MicProvider>
-      <div className="flex min-h-dvh flex-col">
-        <main className="flex-1">{renderContent()}</main>
-        <AppTabBar activeTab={activeTab} onChange={setActiveTab} />
-      </div>
-    </MicProvider>
+    <ErrorBoundary>
+      <MicProvider>
+        <div className="flex min-h-dvh flex-col">
+          <main className="flex-1">{renderContent()}</main>
+          <AppTabBar activeTab={activeTab} onChange={setActiveTab} />
+        </div>
+      </MicProvider>
+    </ErrorBoundary>
   )
 }
