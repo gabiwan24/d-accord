@@ -1,11 +1,35 @@
 import { CHORDS_BY_ROOT } from '../data/chords'
 import type { TuningId } from '../data/tunings'
 import { ChordCard } from './ChordCard'
+import { getAllStats } from '../lib/practiceStats'
 
 interface ChordSelectorProps {
   tuningId: TuningId
   selected: Set<string>
   onToggle: (id: string) => void
+}
+
+function MiniAccuracyBar({ chordId }: { chordId: string }) {
+  const stats = getAllStats()
+  const entry = stats[chordId]
+  if (!entry || entry.attempts === 0) return null
+
+  const accuracy = entry.correct / entry.attempts
+  const color =
+    accuracy > 0.8
+      ? 'bg-success'
+      : accuracy >= 0.6
+        ? 'bg-amber-400'
+        : 'bg-red-400'
+
+  return (
+    <div className="mt-0.5 h-[3px] w-full overflow-hidden rounded-full bg-ink/10">
+      <div
+        className={`h-full rounded-full ${color}`}
+        style={{ width: `${Math.round(accuracy * 100)}%` }}
+      />
+    </div>
+  )
 }
 
 export function ChordSelector({
@@ -42,6 +66,7 @@ export function ChordSelector({
                     accent={chord.accent}
                     size="xs"
                   />
+                  <MiniAccuracyBar chordId={chord.id} />
                 </label>
               )
             })}
