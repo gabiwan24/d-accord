@@ -93,3 +93,21 @@ describe('tunerEngine', () => {
     expect(reading?.detectedLabel).toBeNull()
   })
 })
+
+describe('isInTune with new threshold', () => {
+  it('returns true at 7 cents (below new threshold of 8)', () => {
+    expect(isInTune(7)).toBe(true)
+  })
+
+  it('returns false at 9 cents (above new threshold of 8)', () => {
+    expect(isInTune(9)).toBe(false)
+  })
+
+  it('returns true at -7 cents', () => {
+    expect(isInTune(-7)).toBe(true)
+  })
+
+  it('old threshold 5 cents is still in tune', () => {
+    expect(isInTune(5)).toBe(true)
+  })
+})

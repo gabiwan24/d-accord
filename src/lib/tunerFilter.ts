@@ -1,6 +1,6 @@
 /** Exponentieller Gleitwert — kleiner = ruhiger, größer = reaktiver */
-export const MIDI_SMOOTH_ALPHA = 0.18
-export const CENTS_SMOOTH_ALPHA = 0.22
+export const MIDI_SMOOTH_ALPHA = 0.10
+export const CENTS_SMOOTH_ALPHA = 0.12
 
 export class ExponentialSmoother {
   private value: number | null = null
@@ -31,7 +31,7 @@ export class StableStringGate {
   private stableCount = 0
   private locked: number | null = null
 
-  constructor(private readonly requiredFrames = 6) {}
+  constructor(private readonly requiredFrames = 15) {}
 
   reset(): void {
     this.candidate = null

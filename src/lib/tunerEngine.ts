@@ -5,7 +5,7 @@ import {
   midiToNoteLabel,
 } from './musicMath'
 
-export const IN_TUNE_CENTS = 5
+export const IN_TUNE_CENTS = 8
 export const DISPLAY_CENTS_CLAMP = 50
 export const MIN_DETECTION_ENERGY = 0.0001
 
