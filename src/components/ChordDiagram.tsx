@@ -146,6 +146,7 @@ interface ChordDiagramProps {
   transitionKey?: number
   size?: DiagramSize
   animateFingers?: boolean
+  missingStringIndices?: Set<number> | null
 }
 
 export function ChordDiagram({
@@ -153,6 +154,7 @@ export function ChordDiagram({
   transitionKey = 0,
   size = 'sm',
   animateFingers = false,
+  missingStringIndices,
 }: ChordDiagramProps) {
   const layout = useMemo(() => getDiagramLayout(size), [size])
   const {
@@ -370,6 +372,27 @@ export function ChordDiagram({
                 />
               ))}
         </g>
+
+        {missingStringIndices && missingStringIndices.size > 0 && (
+          <g aria-hidden>
+            {shape.frets.map((fret, i) => {
+              if (fret === null || !missingStringIndices.has(i)) return null
+              const r = dotRadius + dotStroke
+              return (
+                <rect
+                  key={`dim-${i}`}
+                  x={stringX(i) - r}
+                  y={padTop - r}
+                  width={r * 2}
+                  height={display.stringBottomY - padTop + r * 2}
+                  fill="var(--color-cream)"
+                  rx={r}
+                  className="finger-missing"
+                />
+              )
+            })}
+          </g>
+        )}
       </svg>
     </div>
   )
