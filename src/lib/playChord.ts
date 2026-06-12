@@ -130,3 +130,24 @@ export async function playChordShape(
     strumIndex++
   }
 }
+
+/** Spielt einen einzelnen Referenzton (für Noten-Übung). pitchClass: 0=C … 11=H */
+export async function playNoteReference(pitchClass: number): Promise<void> {
+  suppressDetection(PREVIEW_SUPPRESS_MS)
+  const ctx = getContext()
+  if (ctx.state === 'suspended') {
+    await ctx.resume()
+  }
+  const midi = 60 + pitchClass // C4=60 … H4=71
+  const now = ctx.currentTime
+  playString(ctx, midi, now, 0)
+}
+
+/** AudioContext schließen (z.B. wenn App in den Hintergrund geht). */
+export function closeAudioContext(): void {
+  if (sharedContext) {
+    void sharedContext.close()
+    sharedContext = null
+    masterBus = null
+  }
+}
