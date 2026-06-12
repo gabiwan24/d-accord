@@ -1,28 +1,47 @@
 import { useCallback, useEffect, useState } from 'react'
 import { shuffle } from '../lib/shuffle'
 
-export function useInfinitePracticeQueue(ids: string[]) {
-  const [queue, setQueue] = useState<string[]>(() => shuffle(ids))
+function weightedShuffle(ids: string[], getAccuracy: (id: string) => number): string[] {
+  const expanded: string[] = []
+  for (const id of ids) {
+    const acc = getAccuracy(id)
+    const weight = acc > 0.8 ? 1 : acc >= 0.6 ? 2 : 3
+    for (let i = 0; i < weight; i++) expanded.push(id)
+  }
+  return shuffle(expanded)
+}
+
+export function useInfinitePracticeQueue(
+  ids: string[],
+  getAccuracy?: (id: string) => number,
+) {
+  const buildQueue = useCallback(
+    () => (getAccuracy ? weightedShuffle(ids, getAccuracy) : shuffle(ids)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ids, getAccuracy],
+  )
+
+  const [queue, setQueue] = useState<string[]>(() => buildQueue())
   const [index, setIndex] = useState(0)
   const [count, setCount] = useState(0)
 
   useEffect(() => {
-    setQueue(shuffle(ids))
+    setQueue(buildQueue())
     setIndex(0)
     setCount(0)
-  }, [ids])
+  }, [buildQueue])
 
   const goNext = useCallback(() => {
     setCount((c) => c + 1)
     setIndex((i) => {
       const next = i + 1
       if (next >= queue.length) {
-        setQueue(shuffle(ids))
+        setQueue(buildQueue())
         return 0
       }
       return next
     })
-  }, [ids, queue.length])
+  }, [buildQueue, queue.length])
 
   const currentId = queue[index]
   const nextId =
