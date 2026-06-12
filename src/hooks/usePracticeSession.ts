@@ -20,6 +20,7 @@ export function usePracticeSession(
   const [micError, setMicError] = useState<string | null>(null)
   const [pulse, setPulse] = useState(false)
   const detectorRef = useRef<AudioDetector | null>(null)
+  const pulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { micEnabled } = useMicEnabled()
 
   const current = currentId ? getChord(currentId) : undefined
@@ -28,8 +29,15 @@ export function usePracticeSession(
   const advance = useCallback(() => {
     setPulse(true)
     goNext()
-    setTimeout(() => setPulse(false), 300)
+    if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current)
+    pulseTimeoutRef.current = setTimeout(() => setPulse(false), 300)
   }, [goNext])
+
+  useEffect(() => {
+    return () => {
+      if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current)
+    }
+  }, [])
 
   const advanceRef = useRef(advance)
   advanceRef.current = advance
