@@ -64,7 +64,6 @@ export default function App() {
     setSummary(null)
   }
 
-  // handleOpenHelp and showOnboarding will be wired in Task 7 (onboarding modal)
   const handleOpenHelp = () => setShowOnboarding(true)
 
   const renderContent = () => {
