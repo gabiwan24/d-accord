@@ -16,7 +16,8 @@ import {
   type TunerMode,
   type TunerReading,
 } from './tunerEngine'
-import { centsBetweenMidi } from './musicMath'
+import { centsBetweenMidi, midiToHz } from './musicMath'
+import { addDebugFrame } from './debugStore'
 
 export interface TunerCallbacks {
   onReading: (reading: TunerReading) => void
@@ -117,6 +118,22 @@ export function createTunerController(callbacks: TunerCallbacks): TunerControlle
 
       callbacks.onStatusChange(reading.status)
       callbacks.onReading(reading)
+      addDebugFrame({
+        timestamp: Date.now(),
+        source: 'tuner',
+        hz: rawMidi !== null ? midiToHz(rawMidi) : null,
+        rawMidi,
+        energy: data.maxEnergy,
+        pitchClasses: [],
+        stable: false,
+        smoothedMidi: detectedMidi,
+        cents: reading.cents,
+        detectedString: reading.detectedLabel,
+        targetPitchClasses: [],
+        correct: [],
+        noise: [],
+        missing: [],
+      })
     },
     onError: (err) => {
       callbacks.onStatusChange('error')
