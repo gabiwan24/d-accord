@@ -22,20 +22,23 @@ type ExpectedTarget =
 
 type Phase = 'armed' | 'cooldown'
 
-const STABLE_MATCHES_REQUIRED = 5
+const MATCH_WINDOW = 8
+const MATCHES_REQUIRED = 5
 const MIN_ENERGY = 0.002
 const COOLDOWN_MS = 900
 const RELEASE_QUIET_FRAMES = 15
 
 export function createAudioDetector(callbacks: DetectorCallbacks) {
   let expected: ExpectedTarget | null = null
-  let stableMatchCount = 0
+  const matchWindow: boolean[] = new Array(MATCH_WINDOW).fill(false)
+  let matchWindowIndex = 0
   let consecutiveQuiet = 0
   let phase: Phase = 'armed'
   let cooldownUntil = 0
 
   const resetMatchState = () => {
-    stableMatchCount = 0
+    matchWindow.fill(false)
+    matchWindowIndex = 0
     consecutiveQuiet = 0
     phase = 'armed'
     cooldownUntil = 0
@@ -47,7 +50,8 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
       if (!expected) return
 
       if (isDetectionSuppressed()) {
-        stableMatchCount = 0
+        matchWindow.fill(false)
+        matchWindowIndex = 0
         consecutiveQuiet = 0
         return
       }
@@ -62,7 +66,8 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
         if (now >= cooldownUntil && consecutiveQuiet >= RELEASE_QUIET_FRAMES) {
           phase = 'armed'
           consecutiveQuiet = 0
-          stableMatchCount = 0
+          matchWindow.fill(false)
+          matchWindowIndex = 0
           callbacks.onStatusChange('listening')
         } else {
           callbacks.onStatusChange('correct')
@@ -71,7 +76,6 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
       }
 
       if (isQuiet || !data.stable) {
-        stableMatchCount = 0
         if (isQuiet) callbacks.onStatusChange('listening')
         return
       }
@@ -92,20 +96,21 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
         )
       }
 
-      if (matches) {
-        stableMatchCount++
-        if (stableMatchCount >= STABLE_MATCHES_REQUIRED) {
-          phase = 'cooldown'
-          cooldownUntil = now + COOLDOWN_MS
-          consecutiveQuiet = 0
-          stableMatchCount = 0
-          callbacks.onStatusChange('correct')
-          callbacks.onCorrect()
-        } else {
-          callbacks.onStatusChange('almost')
-        }
+      matchWindow[matchWindowIndex % MATCH_WINDOW] = matches
+      matchWindowIndex++
+      const recentMatches = matchWindow.filter(Boolean).length
+
+      if (recentMatches >= MATCHES_REQUIRED) {
+        matchWindow.fill(false)
+        matchWindowIndex = 0
+        phase = 'cooldown'
+        cooldownUntil = now + COOLDOWN_MS
+        consecutiveQuiet = 0
+        callbacks.onStatusChange('correct')
+        callbacks.onCorrect()
+      } else if (matches) {
+        callbacks.onStatusChange('almost')
       } else {
-        stableMatchCount = 0
         if (!isQuiet && data.stable && expected.kind === 'chord') {
           callbacks.onPartialMatch?.(data.pitchClasses)
         }
@@ -160,14 +165,16 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
     setExpectedChord(chord: UkuleleChord, tuningId: TuningId) {
       expected = { kind: 'chord', chord, tuningId }
       if (phase === 'armed') {
-        stableMatchCount = 0
+        matchWindow.fill(false)
+        matchWindowIndex = 0
         consecutiveQuiet = 0
       }
     },
     setExpectedNote(pitchClass: number) {
       expected = { kind: 'note', pitchClass }
       if (phase === 'armed') {
-        stableMatchCount = 0
+        matchWindow.fill(false)
+        matchWindowIndex = 0
         consecutiveQuiet = 0
       }
     },
