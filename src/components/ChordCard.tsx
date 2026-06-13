@@ -17,7 +17,7 @@ interface ChordCardProps {
   onPlay?: () => void
   animateFingers?: boolean
   showLabel?: boolean
-  missingStringIndices?: Set<number> | null
+  correctStringIndices?: Set<number> | null
 }
 
 export function ChordCard({
@@ -30,7 +30,7 @@ export function ChordCard({
   onPlay,
   animateFingers = false,
   showLabel = true,
-  missingStringIndices,
+  correctStringIndices,
 }: ChordCardProps) {
   const contentWidth = getDiagramContentWidth(size)
 
@@ -40,7 +40,7 @@ export function ChordCard({
       transitionKey={transitionKey}
       size={size}
       animateFingers={animateFingers}
-      missingStringIndices={missingStringIndices}
+      correctStringIndices={correctStringIndices}
     />
   )
 

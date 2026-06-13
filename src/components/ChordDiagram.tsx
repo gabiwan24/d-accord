@@ -146,7 +146,7 @@ interface ChordDiagramProps {
   transitionKey?: number
   size?: DiagramSize
   animateFingers?: boolean
-  missingStringIndices?: Set<number> | null
+  correctStringIndices?: Set<number> | null
 }
 
 export function ChordDiagram({
@@ -154,7 +154,7 @@ export function ChordDiagram({
   transitionKey = 0,
   size = 'sm',
   animateFingers = false,
-  missingStringIndices,
+  correctStringIndices,
 }: ChordDiagramProps) {
   const layout = useMemo(() => getDiagramLayout(size), [size])
   const {
@@ -215,7 +215,9 @@ export function ChordDiagram({
     )
 
   const glowFilterId = `finger-pulse-glow-${size}`
+  const detectionGlowFilterId = `detection-glow-${size}`
   const glowBlur = dotRadius * 0.62
+  const detectionGlowBlur = dotRadius * 1.4
   const { overflow } = layout
 
   const contentHeight = animateFingers
@@ -248,6 +250,15 @@ export function ChordDiagram({
             height="340%"
           >
             <feGaussianBlur in="SourceGraphic" stdDeviation={glowBlur} />
+          </filter>
+          <filter
+            id={detectionGlowFilterId}
+            x="-200%"
+            y="-200%"
+            width="500%"
+            height="500%"
+          >
+            <feGaussianBlur in="SourceGraphic" stdDeviation={detectionGlowBlur} />
           </filter>
         </defs>
 
@@ -315,6 +326,24 @@ export function ChordDiagram({
           ) : null,
         )}
 
+        {correctStringIndices && correctStringIndices.size > 0 && (
+          <g aria-hidden>
+            {getFingerDotPositions(shape, metrics, fingerAnchorY)
+              .filter((dot) => correctStringIndices.has(dot.stringIndex))
+              .map((dot) => (
+                <circle
+                  key={`glow-${dot.stringIndex}`}
+                  cx={dot.x}
+                  cy={dot.y}
+                  r={dotRadius}
+                  fill="var(--color-success)"
+                  opacity={0.7}
+                  filter={`url(#${detectionGlowFilterId})`}
+                />
+              ))}
+          </g>
+        )}
+
         <g>
           {display.fretLines.map(({ fretNumber, y, opacity }) =>
             opacity > 0.01 ? (
@@ -373,26 +402,6 @@ export function ChordDiagram({
               ))}
         </g>
 
-        {missingStringIndices && missingStringIndices.size > 0 && (
-          <g aria-hidden>
-            {shape.frets.map((fret, i) => {
-              if (fret === null || !missingStringIndices.has(i)) return null
-              const r = dotRadius + dotStroke
-              return (
-                <rect
-                  key={`dim-${i}`}
-                  x={stringX(i) - r}
-                  y={padTop - r}
-                  width={r * 2}
-                  height={display.stringBottomY - padTop + r * 2}
-                  fill="var(--color-cream)"
-                  rx={r}
-                  className="finger-missing"
-                />
-              )
-            })}
-          </g>
-        )}
       </svg>
     </div>
   )

@@ -71,17 +71,17 @@ export function PracticeScreen({
 
   const shape = current?.shapes[tuningId]
 
-  const missingStringIndices = useMemo(() => {
+  const correctStringIndices = useMemo(() => {
     if (!detectedPitchClasses || detectedPitchClasses.length === 0 || !shape) return null
     const detected = new Set(detectedPitchClasses.map((pc) => ((pc % 12) + 12) % 12))
     const strings = TUNINGS[tuningId].strings
-    const missing = new Set<number>()
+    const correct = new Set<number>()
     shape.frets.forEach((fret, i) => {
       if (fret === null) return
       const pc = ((strings[i].midi + fret) % 12 + 12) % 12
-      if (!detected.has(pc)) missing.add(i)
+      if (detected.has(pc)) correct.add(i)
     })
-    return missing.size > 0 ? missing : null
+    return correct.size > 0 ? correct : null
   }, [detectedPitchClasses, shape, tuningId])
 
   if (!current || !shape) {
@@ -128,7 +128,7 @@ export function PracticeScreen({
           animateFingers
           showLabel
           onPlay={() => void playChordShape(shape, tuningId)}
-          missingStringIndices={missingStringIndices}
+          correctStringIndices={correctStringIndices}
         />
 
         <button

@@ -95,10 +95,3 @@ body {
   animation: accent-pulse 300ms ease-in-out;
 }
 
-@keyframes finger-missing-pulse {
-  0%, 100% { opacity: 0.65; }
-  50% { opacity: 0.3; }
-}
-.finger-missing {
-  animation: finger-missing-pulse 1.2s ease-in-out infinite;
-}
