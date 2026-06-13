@@ -60,10 +60,12 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
       const isQuiet = data.maxEnergy < MIN_ENERGY
 
       if (phase === 'cooldown') {
+        const timeExpired = now >= cooldownUntil
         if (isQuiet) consecutiveQuiet++
         else consecutiveQuiet = 0
+        const quietEnough = consecutiveQuiet >= RELEASE_QUIET_FRAMES
 
-        if (now >= cooldownUntil && consecutiveQuiet >= RELEASE_QUIET_FRAMES) {
+        if (timeExpired || quietEnough) {
           phase = 'armed'
           consecutiveQuiet = 0
           matchWindow.fill(false)

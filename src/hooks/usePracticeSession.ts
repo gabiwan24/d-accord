@@ -43,6 +43,7 @@ export function usePracticeSession(
 
   const advance = useCallback(() => {
     if (currentId) recordAttempt(currentId, true)
+    detectorRef.current?.prepareNextTarget()
     setDetectedPitchClasses(null)
     setPulse(true)
     goNext()
