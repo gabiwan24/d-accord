@@ -4,6 +4,8 @@ import { isDetectionSuppressed } from './detectionSuppress'
 import { noteMatches } from './noteMatcher'
 import type { UkuleleChord } from '../data/chords'
 import type { TuningId } from '../data/tunings'
+import { addDebugFrame } from './debugStore'
+import { midiToHz } from './musicMath'
 
 export type MicStatus = 'idle' | 'listening' | 'almost' | 'correct' | 'error'
 
@@ -109,6 +111,30 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
         }
         callbacks.onStatusChange('listening')
       }
+
+      // Debug frame
+      const fundMidi = (data as unknown as { fundMidis?: ArrayLike<number> }).fundMidis?.[0] ?? null
+      const targetPCs =
+        expected?.kind === 'chord'
+          ? (expected.chord.shapes[expected.tuningId]?.pitchClasses ?? [])
+          : []
+      const detectedPCs: number[] = data.pitchClasses ?? []
+      addDebugFrame({
+        timestamp: Date.now(),
+        source: 'detector',
+        hz: fundMidi !== null ? midiToHz(fundMidi) : null,
+        rawMidi: fundMidi,
+        energy: data.maxEnergy,
+        pitchClasses: detectedPCs,
+        stable: data.stable,
+        smoothedMidi: null,
+        cents: null,
+        detectedString: null,
+        targetPitchClasses: targetPCs,
+        correct: detectedPCs.filter((pc) => targetPCs.includes(pc)),
+        noise: detectedPCs.filter((pc) => !targetPCs.includes(pc)),
+        missing: targetPCs.filter((pc) => !detectedPCs.includes(pc)),
+      })
     },
     onError: (err) => {
       callbacks.onStatusChange('error')
