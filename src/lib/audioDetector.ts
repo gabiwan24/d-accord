@@ -101,6 +101,7 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
         matches = chordMatches({
           detectedName: null,
           detectedPitchClasses: data.pitchClasses,
+          detectedFundMidis: fundMidiList.filter((m) => m >= MIN_FUNDAMENTAL_MIDI),
           expected: expected.chord,
           tuningId: expected.tuningId,
         })
