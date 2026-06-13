@@ -55,6 +55,7 @@ export function useAnimatedFingerMarkers(
     frame: FingerAnimationFrame | null
   }>({ key: -1, frame: null })
   const metricsForFrameRef = useRef(metrics)
+  const prevTransitionKeyRef = useRef(transitionKey)
   const [persistedExits, setPersistedExits] = useState<AnimatedFingerMarker[]>(
     [],
   )
@@ -66,6 +67,9 @@ export function useAnimatedFingerMarkers(
       return frameCacheRef.current.frame
     }
 
+    const keyChanged = transitionKey !== prevTransitionKeyRef.current
+    prevTransitionKeyRef.current = transitionKey
+
     metricsForFrameRef.current = metrics
     const current = markersForShape(
       shape,
@@ -73,7 +77,9 @@ export function useAnimatedFingerMarkers(
       dotRadius,
       anchorGridTopY,
     )
-    const inUse = transitionKey === 0 ? null : [...slotsRef.current.values()]
+    // Snap to new chord immediately on chord change — same logic as useAnimatedFretboard.
+    // Animating fingers from old positions would briefly show the previous chord's shape.
+    const inUse = (transitionKey === 0 || keyChanged) ? null : [...slotsRef.current.values()]
 
     const result = buildFingerAnimations(
       inUse && inUse.length > 0 ? inUse : null,
