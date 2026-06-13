@@ -237,6 +237,7 @@ export function useAnimatedFretboard(
 
   const liveMetricsRef = useRef(targetMetrics)
   const liveFretsRef = useRef(shape.frets)
+  const prevTransitionKeyRef = useRef(transitionKey)
   const displayRef = useRef<FretboardDisplayState>(
     snapFretboard(targetMetrics, padTop, shape.frets),
   )
@@ -256,7 +257,12 @@ export function useAnimatedFretboard(
       commitDisplay(snapFretboard(targetMetrics, padTop, shape.frets))
     }
 
-    if (!enabled || transitionKey === 0) {
+    const keyChanged = transitionKey !== prevTransitionKeyRef.current
+    prevTransitionKeyRef.current = transitionKey
+
+    // Always snap on first render or chord change — keeps name and diagram in sync.
+    // Only animate if the fretboard layout changed within the same chord (e.g. window resize).
+    if (!enabled || transitionKey === 0 || keyChanged) {
       snap()
       return
     }
