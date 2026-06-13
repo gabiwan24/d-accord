@@ -119,11 +119,19 @@ export function pitchClassesMatch(
   const expectedUnique = [...new Set(expected.map(normalizePc))]
   if (expectedUnique.length === 0 || detected.length === 0) return false
 
-  const detectedSet = new Set(detected.map(normalizePc))
-  const matched = expectedUnique.filter((pc) => detectedSet.has(pc)).length
+  const expectedSet = new Set(expectedUnique)
+  const detectedNorm = detected.map(normalizePc)
+  const matched = expectedUnique.filter((pc) => detectedNorm.includes(pc)).length
   const allowMissing = expectedUnique.length >= 4 ? 1 : 0
 
-  return matched >= expectedUnique.length - allowMissing
+  if (matched < expectedUnique.length - allowMissing) return false
+
+  // No extra (noise) pitch classes allowed per frame.
+  // A systematically wrong note produces noise every frame → never accumulates
+  // enough matches in the sliding window. Occasional overtone frames are fine
+  // because the window needs only 5/8 clean frames.
+  const noiseCount = detectedNorm.filter((pc) => !expectedSet.has(pc)).length
+  return noiseCount === 0
 }
 
 export interface MatchInput {
