@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AppTabBar, type AppTab } from './components/AppTabBar'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { OnboardingOverlay, hasSeenOnboarding } from './components/OnboardingOverlay'
+import { DebugOverlay } from './components/DebugOverlay'
 import { MicProvider } from './context/MicContext'
 import { closeAudioContext } from './lib/playChord'
 import type { PracticeSessionConfig } from './screens/SetupScreen'
@@ -115,6 +116,7 @@ export default function App() {
         {showOnboarding && (
           <OnboardingOverlay onClose={() => setShowOnboarding(false)} />
         )}
+        <DebugOverlay />
       </MicProvider>
     </ErrorBoundary>
   )
