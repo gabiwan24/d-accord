@@ -24,6 +24,7 @@ function makeFrame(overrides: Partial<DebugFrame> = {}): DebugFrame {
     correct: [],
     noise: [],
     missing: [],
+    fundMidiList: [],
     ...overrides,
   }
 }

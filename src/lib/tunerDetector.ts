@@ -133,6 +133,7 @@ export function createTunerController(callbacks: TunerCallbacks): TunerControlle
         correct: [],
         noise: [],
         missing: [],
+        fundMidiList: rawMidi !== null ? [Math.round(rawMidi * 10) / 10] : [],
       })
     },
     onError: (err) => {

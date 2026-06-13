@@ -60,7 +60,16 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
       }
 
       const now = performance.now()
-      const fundMidi = (data as unknown as { fundMidis?: ArrayLike<number> }).fundMidis?.[0] ?? null
+      const fundCount = (data as unknown as { fundCount?: number }).fundCount ?? 0
+      const fundMidisRaw = (data as unknown as { fundMidis?: ArrayLike<number> }).fundMidis
+      const fundMidiList: number[] = []
+      if (fundMidisRaw) {
+        const n = Math.min(fundCount, fundMidisRaw.length)
+        for (let i = 0; i < n; i++) {
+          fundMidiList.push(Math.round(fundMidisRaw[i] * 10) / 10)
+        }
+      }
+      const fundMidi = fundMidisRaw?.[0] ?? null
       const isBelowUkuleleRange = fundMidi !== null && fundMidi < MIN_FUNDAMENTAL_MIDI
       const isQuiet = data.maxEnergy < MIN_ENERGY || isBelowUkuleleRange
 
@@ -145,6 +154,7 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
         correct: detectedPCs.filter((pc) => targetPCs.includes(pc)),
         noise: detectedPCs.filter((pc) => !targetPCs.includes(pc)),
         missing: targetPCs.filter((pc) => !detectedPCs.includes(pc)),
+        fundMidiList,
       })
     },
     onError: (err) => {

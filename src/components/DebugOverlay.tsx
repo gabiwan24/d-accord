@@ -96,6 +96,21 @@ function PitchChromagram() {
   )
 }
 
+// Unambiguous note names for diagnostics (Bb vs B, not German B/H)
+const DIAG_NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'Bb', 'B']
+
+function midiToNoteOct(midi: number): string {
+  const r = Math.round(midi)
+  const name = DIAG_NOTE_NAMES[((r % 12) + 12) % 12]
+  const octave = Math.floor(r / 12) - 1
+  return `${name}${octave}`
+}
+
+function fundsLabel(funds: number[]): string {
+  if (funds.length === 0) return '—'
+  return funds.map((m) => `${midiToNoteOct(m)}(${m.toFixed(1)})`).join(' ')
+}
+
 function pcName(pc: number): string {
   return PC_NAMES[pc] ?? String(pc)
 }
@@ -136,7 +151,7 @@ export function DebugOverlay() {
     const entries = getLog()
     const cols = [
       'source', 'timestamp', 'hz', 'rawMidi', 'energy',
-      'pitchClasses', 'stable', 'smoothedMidi', 'cents',
+      'pitchClasses', 'funds', 'stable', 'smoothedMidi', 'cents',
       'detectedString', 'target', 'correct', 'noise', 'missing',
     ]
     const headerLine = `Ukulele Debug Log — ${new Date().toISOString()}\n`
@@ -150,6 +165,7 @@ export function DebugOverlay() {
           f.rawMidi?.toFixed(1) ?? '-',
           f.energy.toFixed(4),
           f.pitchClasses.join(',') || '-',
+          f.fundMidiList.map((m) => `${midiToNoteOct(m)}:${m.toFixed(1)}`).join(' ') || '-',
           String(f.stable),
           f.smoothedMidi?.toFixed(1) ?? '-',
           f.cents?.toFixed(1) ?? '-',
@@ -225,6 +241,9 @@ export function DebugOverlay() {
             <div>
               PCs: [{pcsLabel(latest.pitchClasses)}] &nbsp;{' '}
               {latest.stable ? '✓' : '~'}
+            </div>
+            <div className="text-cream/70">
+              ♪ {fundsLabel(latest.fundMidiList)}
             </div>
             {(latest.smoothedMidi !== null || latest.cents !== null) && (
               <div>

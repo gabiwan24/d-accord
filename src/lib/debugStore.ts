@@ -17,6 +17,8 @@ export interface DebugFrame {
   correct: number[]
   noise: number[]
   missing: number[]
+  /** All detected fundamentals this frame, octave-aware MIDI (rounded to 0.1) */
+  fundMidiList: number[]
 }
 
 const log: DebugFrame[] = []
@@ -36,7 +38,10 @@ export function addDebugFrame(frame: DebugFrame): void {
   // Filter: only log significant frames
   if (frame.energy < MIN_LOG_ENERGY) return
 
-  const currentPCKey = pcKey(frame.pitchClasses)
+  const currentPCKey =
+    pcKey(frame.pitchClasses) +
+    '|' +
+    frame.fundMidiList.map((m) => m.toFixed(1)).join(',')
   const centsDelta =
     frame.cents !== null && lastLoggedCents !== null
       ? Math.abs(frame.cents - lastLoggedCents)
