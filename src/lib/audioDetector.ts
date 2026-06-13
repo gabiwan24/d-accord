@@ -25,6 +25,9 @@ type Phase = 'armed' | 'cooldown'
 const MATCH_WINDOW = 8
 const MATCHES_REQUIRED = 5
 const MIN_ENERGY = 15
+// Ukulele lowest note: G3 = MIDI 55 (~196 Hz, low-G tuning).
+// Anything below MIDI 48 (C3, 130 Hz) is room/electrical noise.
+const MIN_FUNDAMENTAL_MIDI = 48
 const COOLDOWN_MS = 900
 const RELEASE_QUIET_FRAMES = 15
 
@@ -57,7 +60,9 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
       }
 
       const now = performance.now()
-      const isQuiet = data.maxEnergy < MIN_ENERGY
+      const fundMidi = (data as unknown as { fundMidis?: ArrayLike<number> }).fundMidis?.[0] ?? null
+      const isBelowUkuleleRange = fundMidi !== null && fundMidi < MIN_FUNDAMENTAL_MIDI
+      const isQuiet = data.maxEnergy < MIN_ENERGY || isBelowUkuleleRange
 
       if (phase === 'cooldown') {
         const timeExpired = now >= cooldownUntil
@@ -120,7 +125,6 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
       }
 
       // Debug frame
-      const fundMidi = (data as unknown as { fundMidis?: ArrayLike<number> }).fundMidis?.[0] ?? null
       const targetPCs =
         expected?.kind === 'chord'
           ? (expected.chord.shapes[expected.tuningId]?.pitchClasses ?? [])
