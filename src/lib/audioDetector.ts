@@ -24,7 +24,7 @@ type Phase = 'armed' | 'cooldown'
 
 const MATCH_WINDOW = 8
 const MATCHES_REQUIRED = 5
-const MIN_ENERGY = 0.002
+const MIN_ENERGY = 15
 const COOLDOWN_MS = 900
 const RELEASE_QUIET_FRAMES = 15
 
