@@ -53,6 +53,13 @@ describe('fundExplainedByChord', () => {
     expect(fundExplainedByChord(83.0, emMidis)).toBe(true) // B5 = Oktave von B4
   })
 
+  it('akzeptiert eine Oktave NACH UNTEN (Detektor-Oktavfehler)', () => {
+    // Detektor meldet oft eine Oktave tiefer als gegriffen.
+    const dMidis = [69, 62, 66, 69] // D-Dur: A4, D4, F#4, A4
+    expect(fundExplainedByChord(54.1, dMidis)).toBe(true) // F#3 statt F#4
+    expect(fundExplainedByChord(57.0, dMidis)).toBe(true) // A3 statt A4
+  })
+
   it('lehnt einen falschen Halbton ab (Bb4 statt B4)', () => {
     expect(fundExplainedByChord(70.0, emMidis)).toBe(false) // Bb4 — der Fehler
   })
@@ -162,6 +169,22 @@ describe('chordMatches — C vs Am Verwechslung', () => {
         detectedPitchClasses: [0, 4, 7],
         detectedFundMidis: [60.0, 64.0, 67.0],
         expected: c,
+        tuningId: 'highG',
+      }),
+    ).toBe(true)
+  })
+})
+
+describe('chordMatches — Detektor-Oktavfehler (reale D-Dur-Daten)', () => {
+  it('erkennt D-Dur trotz F#3 statt F#4 und ~0.5 zu tiefer Stimmung', () => {
+    const d = getChord('D')!
+    expect(
+      chordMatches({
+        detectedName: null,
+        // Realer Frame: D4:61.5 (0.5 flat), F#3:54.1 (Oktave runter), A4:68.9
+        detectedPitchClasses: [2, 6, 9],
+        detectedFundMidis: [61.5, 54.1, 68.9],
+        expected: d,
         tuningId: 'highG',
       }),
     ).toBe(true)

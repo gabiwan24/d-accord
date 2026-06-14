@@ -119,10 +119,13 @@ function normalizePc(pc: number): number {
 // a real B4(71) from a wrong Bb4(70) or from a B5(83) overtone of a played E.
 // Octave-aware MIDI matching can. See docs note in chordMatcher.test.ts.
 
-/** Tolerance in semitones for a detected fundamental to count as a chord note. */
+/**
+ * Tolerance in semitones for a detected fundamental's pitch class to count as
+ * a chord note. The detector reads ~0.5 semitone flat on this hardware, so the
+ * window must absorb that while still rejecting a full-semitone error (e.g.
+ * Bb vs B, distance 1.0).
+ */
 export const FUND_MATCH_TOLERANCE = 0.55
-/** Highest harmonic order we accept as a legitimate overtone of a chord note. */
-const MAX_HARMONIC = 4
 
 /** Expected MIDI notes (with octave) for a chord shape in a tuning. */
 export function expectedMidisFromFrets(
@@ -141,22 +144,31 @@ export function expectedMidisFromFrets(
   return midis
 }
 
+/** Circular distance between two (fractional) pitch classes, in [0, 6]. */
+function pitchClassDistance(a: number, b: number): number {
+  const d = ((a - b) % 12 + 12) % 12
+  return Math.min(d, 12 - d)
+}
+
 /**
- * A detected fundamental is "explained" by the chord if it lies within
- * tolerance of an expected note OR one of that note's harmonics (octave,
- * fifth-plus-octave, two octaves). Overtones of played strings are natural and
- * must not be treated as foreign notes.
+ * A detected fundamental is "explained" by the chord if its pitch class lies
+ * within tolerance of a chord tone's pitch class — octave-invariant.
+ *
+ * Octave invariance matters because the detector frequently reports a chord
+ * tone an octave off (e.g. F#3 for a fretted F#4) and octave harmonics of
+ * played strings (G5 of G4). Those share the chord tone's pitch class. A wrong
+ * fret, by contrast, lands a semitone away (Bb vs B → pitch-class distance 1.0)
+ * and stays foreign — which is exactly the precision this check provides.
  */
 export function fundExplainedByChord(
   fund: number,
   expectedMidis: number[],
   tol = FUND_MATCH_TOLERANCE,
 ): boolean {
+  const fundPc = ((fund % 12) + 12) % 12
   for (const e of expectedMidis) {
-    for (let n = 1; n <= MAX_HARMONIC; n++) {
-      const harmonic = e + 12 * Math.log2(n)
-      if (Math.abs(fund - harmonic) <= tol) return true
-    }
+    const ePc = ((e % 12) + 12) % 12
+    if (pitchClassDistance(fundPc, ePc) <= tol) return true
   }
   return false
 }
