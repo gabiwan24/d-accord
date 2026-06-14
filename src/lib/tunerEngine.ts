@@ -78,6 +78,23 @@ export function nearestOpenStringIndex(
   return bestIndex
 }
 
+/**
+ * Cents between detected and target, after folding the detected pitch to the
+ * octave nearest the target. The polyphonic detector frequently reports a note
+ * an octave off (e.g. an octave-down fundamental); without folding, a perfectly
+ * tuned string an octave away would read as ±1200 cents and the meter would
+ * claim it is wildly out of tune.
+ */
+export function octaveFoldedCents(
+  detectedMidi: number,
+  targetMidi: number,
+): number {
+  let folded = detectedMidi
+  while (folded - targetMidi > 6) folded -= 12
+  while (folded - targetMidi < -6) folded += 12
+  return centsBetweenMidi(folded, targetMidi)
+}
+
 export function isInTune(cents: number, threshold = IN_TUNE_CENTS): boolean {
   return Math.abs(cents) <= threshold
 }
@@ -134,7 +151,7 @@ export function buildTunerReading(input: {
     }
   }
 
-  const cents = centsBetweenMidi(input.detectedMidi, target.midi)
+  const cents = octaveFoldedCents(input.detectedMidi, target.midi)
   const inTune = isInTune(cents)
 
   return {

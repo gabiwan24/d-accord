@@ -10,6 +10,7 @@ import {
   IN_TUNE_CENTS,
   isInTune,
   nearestOpenStringIndex,
+  octaveFoldedCents,
 } from './tunerEngine'
 
 describe('musicMath', () => {
@@ -91,6 +92,30 @@ describe('tunerEngine', () => {
     })
     expect(reading?.status).toBe('listening')
     expect(reading?.detectedLabel).toBeNull()
+  })
+})
+
+describe('octaveFoldedCents', () => {
+  it('gleiche Note = 0 Cent', () => {
+    expect(octaveFoldedCents(67, 67)).toBeCloseTo(0, 1)
+  })
+
+  it('faltet eine Oktave nach oben (F#3 erkannt, F#4 Ziel)', () => {
+    // 54.1 vs Ziel 66 → +12 gefaltet auf 66.1 → ~10 Cent, NICHT -1200
+    expect(octaveFoldedCents(54.1, 66)).toBeCloseTo(10, 0)
+  })
+
+  it('faltet eine Oktave nach unten (G5 erkannt, G4 Ziel)', () => {
+    expect(octaveFoldedCents(79, 67)).toBeCloseTo(0, 1)
+  })
+
+  it('ein echter Halbton bleibt ein Halbton (keine Faltung)', () => {
+    expect(octaveFoldedCents(66, 67)).toBeCloseTo(-100, 0)
+  })
+
+  it('zu tief und zu hoch behalten das Vorzeichen', () => {
+    expect(octaveFoldedCents(66.8, 67)).toBeLessThan(0) // zu tief
+    expect(octaveFoldedCents(67.2, 67)).toBeGreaterThan(0) // zu hoch
   })
 })
 

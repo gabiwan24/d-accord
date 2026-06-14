@@ -12,11 +12,12 @@ import {
   isInTune,
   MIN_DETECTION_ENERGY,
   nearestOpenStringIndex,
+  octaveFoldedCents,
   type TunerMicStatus,
   type TunerMode,
   type TunerReading,
 } from './tunerEngine'
-import { centsBetweenMidi, midiToHz } from './musicMath'
+import { midiToHz } from './musicMath'
 import { addDebugFrame } from './debugStore'
 
 export interface TunerCallbacks {
@@ -40,7 +41,7 @@ export interface TunerController {
 function applySmoothedCents(reading: TunerReading): TunerReading {
   if (reading.detectedMidi === null) return reading
 
-  const rawCents = centsBetweenMidi(reading.detectedMidi, reading.targetMidi)
+  const rawCents = octaveFoldedCents(reading.detectedMidi, reading.targetMidi)
   const smoothed = clampDisplayCents(centsSmoother.push(rawCents))
   const inTune = isInTune(smoothed)
 
