@@ -30,8 +30,11 @@ const MIN_ENERGY = 15
 const MIN_FUNDAMENTAL_MIDI = 48
 // Frames of near-silence that count as the previous chord having been released.
 const RELEASE_QUIET_FRAMES = 15
-// Energy rise above the sustain floor that counts as a fresh attack (onset).
-// A sustained chord only decays; a new strum spikes well above its floor.
+// The previous chord counts as released once its energy falls below this
+// fraction of its peak. Re-arming on an onset is blocked until then, so a
+// single strum (whose attack keeps rising after the match) can't re-trigger.
+const RELEASE_FRACTION = 0.4
+// Energy rise above the post-release floor that counts as a fresh attack.
 const ONSET_RISE_ENERGY = 25
 
 export function createAudioDetector(callbacks: DetectorCallbacks) {
@@ -40,28 +43,36 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
   let matchWindowIndex = 0
   let consecutiveQuiet = 0
   let phase: Phase = 'armed'
-  let cooldownMinEnergy = Infinity
+  let cooldownPeak = 0
+  let cooldownReleased = false
+  let cooldownFloor = Infinity
 
   const clearWindow = () => {
     matchWindow.fill(false)
     matchWindowIndex = 0
   }
 
+  const resetCooldownTracking = () => {
+    cooldownPeak = 0
+    cooldownReleased = false
+    cooldownFloor = Infinity
+  }
+
   const resetMatchState = () => {
     clearWindow()
     consecutiveQuiet = 0
     phase = 'armed'
-    cooldownMinEnergy = Infinity
+    resetCooldownTracking()
   }
 
   // After a correct detection (or a skip), wait for the previous chord to be
-  // released or for a fresh attack before matching again — so a sustained
-  // chord can't satisfy the next target on its own.
+  // released (decay) and then a fresh attack — or genuine silence — before
+  // matching again. One strum yields exactly one detection.
   const enterCooldown = () => {
     clearWindow()
     consecutiveQuiet = 0
     phase = 'cooldown'
-    cooldownMinEnergy = Infinity
+    resetCooldownTracking()
   }
 
   const detector = PitchPlease.create({
@@ -90,18 +101,29 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
       const isQuiet = data.maxEnergy < MIN_ENERGY || isBelowUkuleleRange
 
       if (phase === 'cooldown') {
-        cooldownMinEnergy = Math.min(cooldownMinEnergy, data.maxEnergy)
+        cooldownPeak = Math.max(cooldownPeak, data.maxEnergy)
+        // The previous chord has decayed enough to count as released.
+        if (!cooldownReleased && data.maxEnergy < cooldownPeak * RELEASE_FRACTION) {
+          cooldownReleased = true
+        }
+        if (cooldownReleased) {
+          cooldownFloor = Math.min(cooldownFloor, data.maxEnergy)
+        }
+
         if (isQuiet) consecutiveQuiet++
         else consecutiveQuiet = 0
 
-        const released = consecutiveQuiet >= RELEASE_QUIET_FRAMES
-        const onset =
-          !isQuiet && data.maxEnergy > cooldownMinEnergy + ONSET_RISE_ENERGY
+        // Genuine silence, or a fresh attack AFTER the previous chord released.
+        const quietRearm = consecutiveQuiet >= RELEASE_QUIET_FRAMES
+        const onsetRearm =
+          cooldownReleased &&
+          !isQuiet &&
+          data.maxEnergy > cooldownFloor + ONSET_RISE_ENERGY
 
-        if (released || onset) {
+        if (quietRearm || onsetRearm) {
           phase = 'armed'
           consecutiveQuiet = 0
-          cooldownMinEnergy = Infinity
+          resetCooldownTracking()
           clearWindow()
           callbacks.onStatusChange('listening')
         } else {
