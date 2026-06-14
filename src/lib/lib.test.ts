@@ -182,7 +182,7 @@ describe('Referenz-Chart Korrekturen', () => {
   }
 
   it('Cdim', () => {
-    expectShape('Cdim', [2, 3, 2, null], [2, 3, 1, null])
+    expectShape('Cdim', [null, 3, 2, 3], [null, 2, 1, 3])
   })
 
   it('Dsus4', () => {
@@ -210,7 +210,7 @@ describe('Referenz-Chart Korrekturen', () => {
   })
 
   it('Gsus4', () => {
-    expectShape('Gsus4', [0, 3, 3, 5], [0, 1, 1, 2])
+    expectShape('Gsus4', [0, 2, 3, 3], [0, 1, 2, 3])
   })
 
   it('Gdim', () => {
@@ -226,9 +226,14 @@ describe('Referenz-Chart Korrekturen', () => {
     expect(getVisibleFretCount(adim.shapes.highG.frets)).toBe(6)
   })
 
-  it('Gsus4 erweitert bei Bund 5 auf 6 Bünde', () => {
+  it('Fdim erweitert bei Bund 5 auf 6 Bünde', () => {
+    const fdim = getChord('Fdim')!
+    expect(getVisibleFretCount(fdim.shapes.highG.frets)).toBe(6)
+  })
+
+  it('Gsus4 ist jetzt eine tiefe Form (kein Bund 5 mehr)', () => {
     const gsus4 = getChord('Gsus4')!
-    expect(getVisibleFretCount(gsus4.shapes.highG.frets)).toBe(6)
+    expect(getVisibleFretCount(gsus4.shapes.highG.frets)).toBe(4)
   })
 
   it('F und Am teilen gridShiftY 0 bei Leersaiten', () => {

@@ -54,7 +54,7 @@ const CHART: Record<RootNote, Record<ChordSuffix, (number | null)[]>> = {
     '6': [0, 0, 0, 0],
     m6: [2, 3, 3, 3],
     sus4: [0, 0, 1, 3],
-    dim: [2, 3, 2, null],
+    dim: [null, 3, 2, 3],
   },
   D: {
     '': [2, 2, 2, 0],
@@ -73,7 +73,7 @@ const CHART: Record<RootNote, Record<ChordSuffix, (number | null)[]>> = {
     m7: [0, 2, 0, 2],
     '6': [1, 1, 0, 2],
     m6: [0, 1, 0, 2],
-    sus4: [4, 4, 0, 2],
+    sus4: [4, 4, 0, 0],
     dim: [0, 4, 0, 1],
   },
   F: {
@@ -84,7 +84,7 @@ const CHART: Record<RootNote, Record<ChordSuffix, (number | null)[]>> = {
     '6': [2, 2, 1, 3],
     m6: [1, 2, 1, 3],
     sus4: [3, 0, 1, 1],
-    dim: [2, 3, 2, 4],
+    dim: [null, 5, 4, 2],
   },
   G: {
     '': [0, 2, 3, 2],
@@ -93,7 +93,7 @@ const CHART: Record<RootNote, Record<ChordSuffix, (number | null)[]>> = {
     m7: [0, 2, 1, 1],
     '6': [0, 2, 0, 2],
     m6: [0, 2, 0, 1],
-    sus4: [0, 3, 3, 5],
+    sus4: [0, 2, 3, 3],
     dim: [0, 1, 3, 1],
   },
   A: {
@@ -128,7 +128,7 @@ const FINGER_CHART: Record<RootNote, Record<ChordSuffix, (number | null)[]>> = {
     '6': [0, 0, 0, 0],
     m6: [1, 2, 3, 4],
     sus4: [0, 0, 1, 3],
-    dim: [2, 3, 1, null],
+    dim: [null, 2, 1, 3],
   },
   D: {
     '': [1, 2, 3, 0],
@@ -147,7 +147,7 @@ const FINGER_CHART: Record<RootNote, Record<ChordSuffix, (number | null)[]>> = {
     m7: [0, 1, 0, 2],
     '6': [1, 2, 0, 3],
     m6: [0, 1, 0, 2],
-    sus4: [3, 4, 0, 1],
+    sus4: [1, 2, 0, 0],
     dim: [0, 4, 0, 1],
   },
   F: {
@@ -158,7 +158,7 @@ const FINGER_CHART: Record<RootNote, Record<ChordSuffix, (number | null)[]>> = {
     '6': [2, 3, 1, 4],
     m6: [1, 3, 1, 4],
     sus4: [3, 0, 1, 2],
-    dim: [1, 3, 2, 4],
+    dim: [null, 3, 2, 1],
   },
   G: {
     '': [0, 1, 3, 2],
@@ -167,7 +167,7 @@ const FINGER_CHART: Record<RootNote, Record<ChordSuffix, (number | null)[]>> = {
     m7: [0, 3, 1, 2],
     '6': [0, 1, 0, 2],
     m6: [0, 2, 0, 1],
-    sus4: [0, 1, 1, 2],
+    sus4: [0, 1, 2, 3],
     dim: [0, 1, 3, 2],
   },
   A: {
