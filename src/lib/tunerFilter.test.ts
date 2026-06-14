@@ -23,35 +23,36 @@ describe('tunerFilter', () => {
 })
 
 describe('MedianMidiSmoother', () => {
-  it('faltet Oktav-Obertöne auf eine Oktave (E5/E6 → wie E4)', () => {
+  it('überstimmt seltene Oberton-Ausreißer, behält die echte Oktave', () => {
     const s = new MedianMidiSmoother(7)
-    s.push(64) // E4
-    s.push(76) // E5 (Oktave)
-    s.push(88) // E6 (zwei Oktaven)
-    expect(s.current()).toBeCloseTo(64)
-  })
-
-  it('überstimmt einen einzelnen Fremdton (B-Oberton)', () => {
-    const s = new MedianMidiSmoother(7)
-    for (let i = 0; i < 5; i++) s.push(64)
-    expect(s.push(83)).toBeCloseTo(64)
-  })
-
-  it('bleibt stabil bei verrauschtem Anschlag mit E-Mehrheit', () => {
-    const s = new MedianMidiSmoother(7)
-    const attack = [76, 64, 83, 64, 64, 88, 64] // Obertöne + echtes E
+    const attack = [76, 64, 83, 64, 64, 88, 64] // E4-Mehrheit + Obertöne
     let out = 0
     for (const m of attack) out = s.push(m)
-    // Tonklasse E (egal welche Oktave — downstream oktav-invariant)
-    expect(((out % 12) + 12) % 12).toBe(4)
+    expect(out).toBeCloseTo(64) // echtes E4, NICHT auf eine Oktave gefaltet
   })
 
-  it('wechselt zu einer neuen Note, sobald sie die Mehrheit stellt', () => {
+  it('behält die gespielte Oktave (G4 bleibt 67, nicht 55)', () => {
     const s = new MedianMidiSmoother(7)
-    for (let i = 0; i < 7; i++) s.push(64)
-    let out = 64
-    for (let i = 0; i < 4; i++) out = s.push(69) // A4
-    expect(out).toBeCloseTo(69)
+    for (let i = 0; i < 7; i++) s.push(67)
+    expect(s.current()).toBeCloseTo(67)
+  })
+
+  it('ist nicht stabil bei wandernden Geräuschen', () => {
+    const s = new MedianMidiSmoother(7)
+    for (const m of [51, 53, 46, 44, 52, 47, 55]) s.push(m)
+    expect(s.isStable()).toBe(false)
+  })
+
+  it('ist stabil bei einem gehaltenen Ton', () => {
+    const s = new MedianMidiSmoother(7)
+    for (let i = 0; i < 5; i++) s.push(64)
+    expect(s.isStable()).toBe(true)
+  })
+
+  it('ist nicht stabil bei nur einem Sample (Attack-Beginn)', () => {
+    const s = new MedianMidiSmoother(7)
+    s.push(76)
+    expect(s.isStable()).toBe(false)
   })
 
   it('reset leert den Puffer', () => {

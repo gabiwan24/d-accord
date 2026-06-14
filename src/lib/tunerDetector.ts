@@ -13,12 +13,11 @@ import {
   isInTune,
   MIN_DETECTION_ENERGY,
   nearestOpenStringIndex,
-  octaveFoldedCents,
   type TunerMicStatus,
   type TunerMode,
   type TunerReading,
 } from './tunerEngine'
-import { midiToHz } from './musicMath'
+import { centsBetweenMidi, midiToHz } from './musicMath'
 import { addDebugFrame } from './debugStore'
 
 export interface TunerCallbacks {
@@ -42,7 +41,7 @@ export interface TunerController {
 function applySmoothedCents(reading: TunerReading): TunerReading {
   if (reading.detectedMidi === null) return reading
 
-  const rawCents = octaveFoldedCents(reading.detectedMidi, reading.targetMidi)
+  const rawCents = centsBetweenMidi(reading.detectedMidi, reading.targetMidi)
   const smoothed = clampDisplayCents(centsSmoother.push(rawCents))
   const inTune = isInTune(smoothed)
 
@@ -100,6 +99,24 @@ export function createTunerController(callbacks: TunerCallbacks): TunerControlle
       consecutiveLowEnergy = 0
 
       const detectedMidi = midiSmoother.push(rawMidi)
+
+      // Until a clear majority of recent samples agree, the pitch is still an
+      // attack transient or room noise — show "listening" instead of chasing it.
+      if (!midiSmoother.isStable()) {
+        centsSmoother.reset()
+        callbacks.onStatusChange('listening')
+        callbacks.onReading(
+          buildTunerReading({
+            tuningId: config.tuningId,
+            mode: config.mode,
+            manualStringIndex: config.manualStringIndex,
+            detectedMidi: null,
+            hasSignal: false,
+            micStatus: 'listening',
+          }),
+        )
+        return
+      }
 
       let activeStringIndex: number
       if (config.mode === 'auto') {

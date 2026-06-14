@@ -11,7 +11,6 @@ import {
   IN_TUNE_CENTS,
   isInTune,
   nearestOpenStringIndex,
-  octaveFoldedCents,
 } from './tunerEngine'
 
 describe('musicMath', () => {
@@ -115,27 +114,30 @@ describe('firstFundInRange', () => {
   })
 })
 
-describe('octaveFoldedCents', () => {
-  it('gleiche Note = 0 Cent', () => {
-    expect(octaveFoldedCents(67, 67)).toBeCloseTo(0, 1)
+describe('Oktave zählt (kein Folding) — G4 ≠ gestimmtes G3', () => {
+  it('G4 auf Low-G (Ziel G3) liest als deutlich zu hoch, nicht gestimmt', () => {
+    const reading = buildTunerReading({
+      tuningId: 'lowG',
+      mode: 'manual',
+      manualStringIndex: 0, // G-Saite = G3 (55)
+      detectedMidi: 67, // gespielt: G4 — eine Oktave zu hoch
+      hasSignal: true,
+      micStatus: 'detecting',
+    })
+    expect(reading.inTune).toBe(false)
+    expect(reading.cents).toBeGreaterThan(0)
   })
 
-  it('faltet eine Oktave nach oben (F#3 erkannt, F#4 Ziel)', () => {
-    // 54.1 vs Ziel 66 → +12 gefaltet auf 66.1 → ~10 Cent, NICHT -1200
-    expect(octaveFoldedCents(54.1, 66)).toBeCloseTo(10, 0)
-  })
-
-  it('faltet eine Oktave nach unten (G5 erkannt, G4 Ziel)', () => {
-    expect(octaveFoldedCents(79, 67)).toBeCloseTo(0, 1)
-  })
-
-  it('ein echter Halbton bleibt ein Halbton (keine Faltung)', () => {
-    expect(octaveFoldedCents(66, 67)).toBeCloseTo(-100, 0)
-  })
-
-  it('zu tief und zu hoch behalten das Vorzeichen', () => {
-    expect(octaveFoldedCents(66.8, 67)).toBeLessThan(0) // zu tief
-    expect(octaveFoldedCents(67.2, 67)).toBeGreaterThan(0) // zu hoch
+  it('G3 auf Low-G ist gestimmt', () => {
+    const reading = buildTunerReading({
+      tuningId: 'lowG',
+      mode: 'manual',
+      manualStringIndex: 0,
+      detectedMidi: 55,
+      hasSignal: true,
+      micStatus: 'detecting',
+    })
+    expect(reading.inTune).toBe(true)
   })
 })
 

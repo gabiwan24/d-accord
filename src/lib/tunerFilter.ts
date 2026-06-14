@@ -2,17 +2,20 @@
 export const MIDI_SMOOTH_ALPHA = 0.10
 export const CENTS_SMOOTH_ALPHA = 0.12
 export const MIDI_MEDIAN_WINDOW = 7
+// How close (semitones) a sample must be to the median to "agree" with it.
+const AGREE_TOLERANCE = 0.6
+// Agreeing samples required for the reading to count as a settled pitch.
+const STABLE_MIN_AGREE = 4
 
 /**
- * Median filter that folds each sample to the octave nearest the running
- * estimate before storing.
+ * Median filter over the recent MIDI samples.
  *
- * During a pluck's attack the detector reports octave/overtone jumps of the
- * played note (E5, E6 of an E4) plus sparse off-pitch partials. Folding makes
- * every octave of the note collapse onto one value, so the reading no longer
- * flutters between octaves; the median then outvotes the sparse off-pitch
- * spikes instead of averaging them in (as an EMA did). Which octave it locks
- * to is irrelevant — cents and string assignment are octave-invariant.
+ * The median outvotes the sparse octave/overtone spikes a pluck's attack
+ * produces (E5/E6 of an E4) and the wandering values room noise produces,
+ * while preserving the true octave — which matters for tuning (low-G's G3 vs a
+ * mistakenly played G4). `isStable()` reports whether a clear majority agrees,
+ * so the UI can stay neutral during the attack transient and on noise instead
+ * of chasing it.
  */
 export class MedianMidiSmoother {
   private buf: number[] = []
@@ -28,13 +31,19 @@ export class MedianMidiSmoother {
   }
 
   push(sample: number): number {
-    const ref = this.buf.length ? this.median() : sample
-    let folded = sample
-    while (folded - ref > 6) folded -= 12
-    while (folded - ref < -6) folded += 12
-    this.buf.push(folded)
+    this.buf.push(sample)
     if (this.buf.length > this.size) this.buf.shift()
     return this.median()
+  }
+
+  /** A clear majority of recent samples agree with the median pitch. */
+  isStable(): boolean {
+    if (!this.buf.length) return false
+    const med = this.median()
+    const agree = this.buf.filter(
+      (v) => Math.abs(v - med) <= AGREE_TOLERANCE,
+    ).length
+    return agree >= STABLE_MIN_AGREE
   }
 
   private median(): number {
