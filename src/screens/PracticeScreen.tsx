@@ -11,7 +11,7 @@ import {
 } from '../hooks/usePracticeSession'
 import { formatChordSpokenGuide } from '../lib/chordSpokenName'
 import { playChordShape } from '../lib/playChord'
-import { getAccuracy, getAllStats } from '../lib/practiceStats'
+import { getAllStats, getAverageTime } from '../lib/practiceStats'
 
 interface PracticeScreenProps {
   tuningId: TuningId
@@ -23,32 +23,30 @@ interface PracticeScreenProps {
   }) => void
 }
 
-function AccuracyBar({ chordId }: { chordId: string }) {
-  const stats = getAllStats()
-  const entry = stats[chordId]
-  const accuracy = getAccuracy(chordId)
-  const hasData = entry && entry.attempts > 0
+function formatSeconds(ms: number): string {
+  return `${(ms / 1000).toFixed(1)} s`
+}
 
-  const barColor = !hasData
-    ? 'bg-ink/20'
-    : accuracy > 0.8
-      ? 'bg-success'
-      : accuracy >= 0.6
-        ? 'bg-amber-400'
-        : 'bg-red-400'
+function ChordTimeStat({ chordId }: { chordId: string }) {
+  const avg = getAverageTime(chordId)
+  const best = getAllStats()[chordId]?.bestMs
+
+  if (avg === null) {
+    return (
+      <div className="mt-3 flex h-9 items-center justify-center">
+        <span className="text-xs text-muted/60">noch keine Zeit</span>
+      </div>
+    )
+  }
+
+  const color =
+    avg < 2500 ? 'text-success' : avg < 5000 ? 'text-amber-500' : 'text-red-400'
 
   return (
-    <div className="mt-3 flex flex-col items-center gap-1">
-      <div className="h-2 w-40 overflow-hidden rounded-full bg-ink/10">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
-          style={{ width: `${Math.round(accuracy * 100)}%` }}
-        />
-      </div>
-      {hasData && (
-        <span className="text-xs text-muted">
-          {Math.round(accuracy * 100)}% · {entry.correct}/{entry.attempts}
-        </span>
+    <div className="mt-3 flex h-9 flex-col items-center justify-center gap-0.5">
+      <span className={`text-base tabular-nums ${color}`}>⌀ {formatSeconds(avg)}</span>
+      {best !== undefined && (
+        <span className="text-xs text-muted">Bestzeit {formatSeconds(best)}</span>
       )}
     </div>
   )
@@ -149,7 +147,7 @@ export function PracticeScreen({
           🔊
         </button>
 
-        {currentId && <AccuracyBar chordId={currentId} key={currentId} />}
+        {currentId && <ChordTimeStat chordId={currentId} key={currentId} />}
 
         <SpokenGuide text={spokenGuide} transitionKey={count} />
       </div>

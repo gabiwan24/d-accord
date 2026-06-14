@@ -1,11 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { shuffle } from '../lib/shuffle'
 
-function weightedShuffle(ids: string[], getAccuracy: (id: string) => number): string[] {
+/** Slower chords (more time-to-correct) appear more often; unplayed get normal
+ * priority. Accuracy is useless here (always 100%), so time is the yardstick. */
+function timeWeight(avgMs: number | null): number {
+  if (avgMs === null) return 2 // never played yet — normal priority
+  if (avgMs < 2500) return 1 // fast — needs little practice
+  if (avgMs < 5000) return 2
+  return 3 // slow — practice most
+}
+
+function weightedShuffle(
+  ids: string[],
+  getAverageTime: (id: string) => number | null,
+): string[] {
   const expanded: string[] = []
   for (const id of ids) {
-    const acc = getAccuracy(id)
-    const weight = acc > 0.8 ? 1 : acc >= 0.6 ? 2 : 3
+    const weight = timeWeight(getAverageTime(id))
     for (let i = 0; i < weight; i++) expanded.push(id)
   }
   return shuffle(expanded)
@@ -13,12 +24,12 @@ function weightedShuffle(ids: string[], getAccuracy: (id: string) => number): st
 
 export function useInfinitePracticeQueue(
   ids: string[],
-  getAccuracy?: (id: string) => number,
+  getAverageTime?: (id: string) => number | null,
 ) {
   const buildQueue = useCallback(
-    () => (getAccuracy ? weightedShuffle(ids, getAccuracy) : shuffle(ids)),
+    () => (getAverageTime ? weightedShuffle(ids, getAverageTime) : shuffle(ids)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [ids, getAccuracy],
+    [ids, getAverageTime],
   )
 
   const [queue, setQueue] = useState<string[]>(() => buildQueue())

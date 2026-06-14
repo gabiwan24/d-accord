@@ -7,7 +7,7 @@ import {
   type AudioDetector,
   type MicStatus,
 } from '../lib/audioDetector'
-import { getAccuracy, recordAttempt, recordTime } from '../lib/practiceStats'
+import { getAverageTime, recordAttempt, recordTime } from '../lib/practiceStats'
 import { useInfinitePracticeQueue } from './useInfinitePracticeQueue'
 
 /** Per-chord list of time-to-correct (ms) for the current session. */
@@ -19,7 +19,7 @@ export function usePracticeSession(
   getChord: (id: string) => UkuleleChord | undefined,
 ) {
   const { currentId, nextId, goNext, count } =
-    useInfinitePracticeQueue(chordIds, getAccuracy)
+    useInfinitePracticeQueue(chordIds, getAverageTime)
   const [micStatus, setMicStatus] = useState<MicStatus>('idle')
   const [micError, setMicError] = useState<string | null>(null)
   const [pulse, setPulse] = useState(false)
