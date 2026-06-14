@@ -6,6 +6,7 @@ import {
 } from './musicMath'
 import {
   buildTunerReading,
+  firstFundInRange,
   getStringTargets,
   IN_TUNE_CENTS,
   isInTune,
@@ -92,6 +93,25 @@ describe('tunerEngine', () => {
     })
     expect(reading?.status).toBe('listening')
     expect(reading?.detectedLabel).toBeNull()
+  })
+})
+
+describe('firstFundInRange', () => {
+  it('überspringt Brummen (G1) und nimmt den echten Ton', () => {
+    // Detektor meldet 49-Hz-Brummen als stärksten Fundamentalton
+    expect(firstFundInRange([31.1, 64.0], 2)).toBeCloseTo(64.0)
+  })
+
+  it('nimmt den ersten Ton wenn er im Bereich liegt', () => {
+    expect(firstFundInRange([69.0, 31.0], 2)).toBeCloseTo(69.0)
+  })
+
+  it('gibt null zurück wenn nur Brummen erkannt wird', () => {
+    expect(firstFundInRange([31.0, 38.0, 41.0], 3)).toBeNull()
+  })
+
+  it('respektiert fundCount (ignoriert Reste im Array)', () => {
+    expect(firstFundInRange([31.0, 64.0], 1)).toBeNull()
   })
 })
 

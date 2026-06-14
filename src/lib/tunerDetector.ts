@@ -9,6 +9,7 @@ import {
 import {
   buildTunerReading,
   clampDisplayCents,
+  firstFundInRange,
   isInTune,
   MIN_DETECTION_ENERGY,
   nearestOpenStringIndex,
@@ -65,8 +66,16 @@ export function createTunerController(callbacks: TunerCallbacks): TunerControlle
   const detector = PitchPlease.create({
     stabilityFrames: 6,
     onUpdate: (data) => {
-      const hasSignal = data.maxEnergy >= MIN_DETECTION_ENERGY
-      if (!hasSignal) {
+      const hasEnergy = data.maxEnergy >= MIN_DETECTION_ENERGY
+      // Strongest fundamental within the ukulele range. Rumble-only frames
+      // (mains hum ≈ MIDI 31) yield null and count as "no signal" — they must
+      // not feed the smoother or they make the reading jump and, via octave
+      // folding, falsely read as in tune.
+      const rawMidi = hasEnergy
+        ? firstFundInRange(data.fundMidis, data.fundCount)
+        : null
+
+      if (rawMidi === null) {
         consecutiveLowEnergy++
         if (consecutiveLowEnergy > 12) {
           midiSmoother.reset()
@@ -89,10 +98,6 @@ export function createTunerController(callbacks: TunerCallbacks): TunerControlle
       }
 
       consecutiveLowEnergy = 0
-
-      const rawMidi =
-        data.fundCount > 0 && data.fundMidis[0] > 0 ? data.fundMidis[0] : null
-      if (rawMidi === null) return
 
       const detectedMidi = midiSmoother.push(rawMidi)
 

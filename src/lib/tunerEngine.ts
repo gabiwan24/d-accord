@@ -8,6 +8,11 @@ import {
 export const IN_TUNE_CENTS = 8
 export const DISPLAY_CENTS_CLAMP = 50
 export const MIN_DETECTION_ENERGY = 0.0001
+// Lowest plausible ukulele fundamental: low-G = G3 (MIDI 55); even a one-octave
+// detection error stays ≥ 43. Anything below this is mains hum / rumble
+// (≈49 Hz = MIDI 31) and must be ignored — otherwise it dominates the reading
+// and, via octave folding, falsely reads as a perfectly tuned string.
+export const MIN_TUNER_MIDI = 42
 
 export type TunerMode = 'auto' | 'manual'
 
@@ -35,6 +40,24 @@ export interface TunerReading {
   cents: number
   inTune: boolean
   status: TunerMicStatus
+}
+
+/**
+ * First detected fundamental (in score order) at or above the ukulele range.
+ * Skips low-frequency rumble so the strongest *musical* pitch wins, even when
+ * the detector ranks hum as the top fundamental. Returns null if none qualify.
+ */
+export function firstFundInRange(
+  fundMidis: ArrayLike<number>,
+  fundCount: number,
+  min = MIN_TUNER_MIDI,
+): number | null {
+  const n = Math.min(fundCount, fundMidis.length)
+  for (let i = 0; i < n; i++) {
+    const m = fundMidis[i]
+    if (m >= min) return m
+  }
+  return null
 }
 
 export function getStringTargets(tuningId: TuningId): StringTarget[] {
