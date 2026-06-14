@@ -1,6 +1,17 @@
 const STORAGE_KEY = 'ukulele-chord-stats'
 
-export type ChordStats = Record<string, { correct: number; attempts: number }>
+export interface ChordStatEntry {
+  correct: number
+  attempts: number
+  /** Sum of time-to-correct in ms (the practice yardstick) */
+  totalMs?: number
+  /** Number of timed attempts (denominator for the average) */
+  timedCount?: number
+  /** Fastest time-to-correct in ms */
+  bestMs?: number
+}
+
+export type ChordStats = Record<string, ChordStatEntry>
 
 function load(): ChordStats {
   try {
@@ -23,6 +34,26 @@ export function recordAttempt(chordId: string, correct: boolean): void {
     attempts: entry.attempts + 1,
   }
   save(stats)
+}
+
+/** Record how long (ms) it took to play this chord correctly. */
+export function recordTime(chordId: string, ms: number): void {
+  const stats = load()
+  const entry = stats[chordId] ?? { correct: 0, attempts: 0 }
+  stats[chordId] = {
+    ...entry,
+    totalMs: (entry.totalMs ?? 0) + ms,
+    timedCount: (entry.timedCount ?? 0) + 1,
+    bestMs: entry.bestMs === undefined ? ms : Math.min(entry.bestMs, ms),
+  }
+  save(stats)
+}
+
+/** Average time-to-correct in ms, or null if never timed. */
+export function getAverageTime(chordId: string): number | null {
+  const entry = load()[chordId]
+  if (!entry || !entry.timedCount) return null
+  return (entry.totalMs ?? 0) / entry.timedCount
 }
 
 export function getAccuracy(chordId: string): number {

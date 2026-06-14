@@ -5,7 +5,10 @@ import { ChordCard } from '../components/ChordCard'
 import { SpokenGuide } from '../components/SpokenGuide'
 import { MicStatus } from '../components/MicStatus'
 import { useMicEnabled } from '../context/MicContext'
-import { usePracticeSession } from '../hooks/usePracticeSession'
+import {
+  usePracticeSession,
+  type SessionTimings,
+} from '../hooks/usePracticeSession'
 import { formatChordSpokenGuide } from '../lib/chordSpokenName'
 import { playChordShape } from '../lib/playChord'
 import { getAccuracy, getAllStats } from '../lib/practiceStats'
@@ -13,7 +16,11 @@ import { getAccuracy, getAllStats } from '../lib/practiceStats'
 interface PracticeScreenProps {
   tuningId: TuningId
   chordIds: string[]
-  onDone: (result: { count: number; sessionChordIds: Set<string> }) => void
+  onDone: (result: {
+    count: number
+    sessionChordIds: Set<string>
+    sessionTimings: SessionTimings
+  }) => void
 }
 
 function AccuracyBar({ chordId }: { chordId: string }) {
@@ -65,6 +72,7 @@ export function PracticeScreen({
     skipToNext,
     detectedPitchClasses,
     sessionChordIds,
+    sessionTimings,
   } = usePracticeSession(chordIds, tuningId, getChord)
 
   const { micEnabled } = useMicEnabled()
@@ -110,7 +118,7 @@ export function PracticeScreen({
         </span>
         <button
           type="button"
-          onClick={() => onDone({ count, sessionChordIds })}
+          onClick={() => onDone({ count, sessionChordIds, sessionTimings })}
           className="min-h-11 underline underline-offset-2"
         >
           Beenden

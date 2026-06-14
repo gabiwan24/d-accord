@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
   recordAttempt,
+  recordTime,
   getAccuracy,
+  getAverageTime,
   getAllStats,
   clearStats,
 } from './practiceStats'
@@ -40,6 +42,33 @@ describe('recordAttempt', () => {
     expect(raw).not.toBeNull()
     const parsed = JSON.parse(raw!)
     expect(parsed['G7'].correct).toBe(1)
+  })
+})
+
+describe('recordTime / getAverageTime (Zeit als Messlatte)', () => {
+  it('ist null ohne Zeitdaten', () => {
+    recordAttempt('C', true) // Versuch ohne Zeit
+    expect(getAverageTime('C')).toBeNull()
+  })
+
+  it('mittelt die Zeit über mehrere Versuche', () => {
+    recordTime('C', 1000)
+    recordTime('C', 3000)
+    expect(getAverageTime('C')).toBe(2000)
+  })
+
+  it('hält Akkorde getrennt', () => {
+    recordTime('C', 1000)
+    recordTime('Am', 4000)
+    expect(getAverageTime('C')).toBe(1000)
+    expect(getAverageTime('Am')).toBe(4000)
+  })
+
+  it('berührt die Genauigkeit nicht', () => {
+    recordAttempt('C', true)
+    recordTime('C', 1500)
+    expect(getAccuracy('C')).toBe(1)
+    expect(getAllStats()['C'].attempts).toBe(1)
   })
 })
 

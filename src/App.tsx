@@ -5,6 +5,7 @@ import { OnboardingOverlay, hasSeenOnboarding } from './components/OnboardingOve
 import { DebugOverlay } from './components/DebugOverlay'
 import { MicProvider } from './context/MicContext'
 import { closeAudioContext } from './lib/playChord'
+import type { SessionTimings } from './hooks/usePracticeSession'
 import type { PracticeSessionConfig } from './screens/SetupScreen'
 import { NotePracticeScreen } from './screens/NotePracticeScreen'
 import { PracticeScreen } from './screens/PracticeScreen'
@@ -17,6 +18,7 @@ type Screen = 'setup' | 'practice' | 'summary'
 interface SummaryData {
   count: number
   sessionChordIds: Set<string>
+  sessionTimings: SessionTimings
   config: PracticeSessionConfig
 }
 
@@ -45,7 +47,11 @@ export default function App() {
     setSession(null)
   }
 
-  const handlePracticeDone = (result: { count: number; sessionChordIds: Set<string> }) => {
+  const handlePracticeDone = (result: {
+    count: number
+    sessionChordIds: Set<string>
+    sessionTimings: SessionTimings
+  }) => {
     if (!session || session.mode !== 'chords') {
       setScreen('setup')
       setSession(null)
@@ -77,6 +83,7 @@ export default function App() {
         <SummaryScreen
           count={summary.count}
           sessionChordIds={summary.sessionChordIds}
+          sessionTimings={summary.sessionTimings}
           onPlayAgain={handlePlayAgain}
           onDone={handleSummaryDone}
         />
