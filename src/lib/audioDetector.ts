@@ -28,8 +28,11 @@ const MIN_ENERGY = 15
 // Ukulele lowest note: G3 = MIDI 55 (~196 Hz, low-G tuning).
 // Anything below MIDI 48 (C3, 130 Hz) is room/electrical noise.
 const MIN_FUNDAMENTAL_MIDI = 48
-const COOLDOWN_MS = 900
+// Frames of near-silence that count as the previous chord having been released.
 const RELEASE_QUIET_FRAMES = 15
+// Energy rise above the sustain floor that counts as a fresh attack (onset).
+// A sustained chord only decays; a new strum spikes well above its floor.
+const ONSET_RISE_ENERGY = 25
 
 export function createAudioDetector(callbacks: DetectorCallbacks) {
   let expected: ExpectedTarget | null = null
@@ -37,14 +40,28 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
   let matchWindowIndex = 0
   let consecutiveQuiet = 0
   let phase: Phase = 'armed'
-  let cooldownUntil = 0
+  let cooldownMinEnergy = Infinity
 
-  const resetMatchState = () => {
+  const clearWindow = () => {
     matchWindow.fill(false)
     matchWindowIndex = 0
+  }
+
+  const resetMatchState = () => {
+    clearWindow()
     consecutiveQuiet = 0
     phase = 'armed'
-    cooldownUntil = 0
+    cooldownMinEnergy = Infinity
+  }
+
+  // After a correct detection (or a skip), wait for the previous chord to be
+  // released or for a fresh attack before matching again — so a sustained
+  // chord can't satisfy the next target on its own.
+  const enterCooldown = () => {
+    clearWindow()
+    consecutiveQuiet = 0
+    phase = 'cooldown'
+    cooldownMinEnergy = Infinity
   }
 
   const detector = PitchPlease.create({
@@ -59,7 +76,6 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
         return
       }
 
-      const now = performance.now()
       const fundCount = (data as unknown as { fundCount?: number }).fundCount ?? 0
       const fundMidisRaw = (data as unknown as { fundMidis?: ArrayLike<number> }).fundMidis
       const fundMidiList: number[] = []
@@ -74,19 +90,22 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
       const isQuiet = data.maxEnergy < MIN_ENERGY || isBelowUkuleleRange
 
       if (phase === 'cooldown') {
-        const timeExpired = now >= cooldownUntil
+        cooldownMinEnergy = Math.min(cooldownMinEnergy, data.maxEnergy)
         if (isQuiet) consecutiveQuiet++
         else consecutiveQuiet = 0
-        const quietEnough = consecutiveQuiet >= RELEASE_QUIET_FRAMES
 
-        if (timeExpired || quietEnough) {
+        const released = consecutiveQuiet >= RELEASE_QUIET_FRAMES
+        const onset =
+          !isQuiet && data.maxEnergy > cooldownMinEnergy + ONSET_RISE_ENERGY
+
+        if (released || onset) {
           phase = 'armed'
           consecutiveQuiet = 0
-          matchWindow.fill(false)
-          matchWindowIndex = 0
+          cooldownMinEnergy = Infinity
+          clearWindow()
           callbacks.onStatusChange('listening')
         } else {
-          callbacks.onStatusChange('correct')
+          callbacks.onStatusChange(isQuiet ? 'listening' : 'correct')
         }
         return
       }
@@ -118,11 +137,7 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
       const recentMatches = matchWindow.filter(Boolean).length
 
       if (recentMatches >= MATCHES_REQUIRED) {
-        matchWindow.fill(false)
-        matchWindowIndex = 0
-        phase = 'cooldown'
-        cooldownUntil = now + COOLDOWN_MS
-        consecutiveQuiet = 0
+        enterCooldown()
         callbacks.onStatusChange('correct')
         callbacks.onCorrect()
       } else if (matches) {
@@ -176,7 +191,9 @@ export function createAudioDetector(callbacks: DetectorCallbacks) {
       callbacks.onStatusChange('idle')
     },
     prepareNextTarget() {
-      resetMatchState()
+      // Require the previous chord to be released or a fresh attack before the
+      // next target can match — prevents sustain from carrying over.
+      enterCooldown()
       callbacks.onStatusChange('listening')
     },
     setExpectedChord(chord: UkuleleChord, tuningId: TuningId) {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { shuffle } from '../lib/shuffle'
 
 function weightedShuffle(ids: string[], getAccuracy: (id: string) => number): string[] {
@@ -25,7 +25,15 @@ export function useInfinitePracticeQueue(
   const [index, setIndex] = useState(0)
   const [count, setCount] = useState(0)
 
+  // Re-shuffle only when the inputs change — NOT on mount. The useState
+  // initializer already built the first queue; re-shuffling on mount would
+  // swap the first chord while transitionKey stays 0, desyncing the diagram.
+  const didInitRef = useRef(false)
   useEffect(() => {
+    if (!didInitRef.current) {
+      didInitRef.current = true
+      return
+    }
     setQueue(buildQueue())
     setIndex(0)
     setCount(0)

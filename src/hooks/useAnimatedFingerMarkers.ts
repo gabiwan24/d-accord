@@ -52,8 +52,9 @@ export function useAnimatedFingerMarkers(
   const slotsRef = useRef<Map<number, FingerMarker>>(new Map())
   const frameCacheRef = useRef<{
     key: number
+    shape: ChordShape | null
     frame: FingerAnimationFrame | null
-  }>({ key: -1, frame: null })
+  }>({ key: -1, shape: null, frame: null })
   const metricsForFrameRef = useRef(metrics)
   const prevTransitionKeyRef = useRef(transitionKey)
   const [persistedExits, setPersistedExits] = useState<AnimatedFingerMarker[]>(
@@ -63,11 +64,20 @@ export function useAnimatedFingerMarkers(
   const frame = useMemo(() => {
     if (!enabled) return null
 
-    if (frameCacheRef.current.key === transitionKey) {
+    // Cache is keyed on BOTH transitionKey and shape: the shape can change
+    // without transitionKey (e.g. queue rebuild at mount), and a stale cache
+    // would render the previous chord's fingers over the new diagram.
+    if (
+      frameCacheRef.current.key === transitionKey &&
+      frameCacheRef.current.shape === shape
+    ) {
       return frameCacheRef.current.frame
     }
 
     const keyChanged = transitionKey !== prevTransitionKeyRef.current
+    const shapeChanged =
+      frameCacheRef.current.shape !== null &&
+      frameCacheRef.current.shape !== shape
     prevTransitionKeyRef.current = transitionKey
 
     metricsForFrameRef.current = metrics
@@ -79,7 +89,10 @@ export function useAnimatedFingerMarkers(
     )
     // Snap to new chord immediately on chord change — same logic as useAnimatedFretboard.
     // Animating fingers from old positions would briefly show the previous chord's shape.
-    const inUse = (transitionKey === 0 || keyChanged) ? null : [...slotsRef.current.values()]
+    const inUse =
+      transitionKey === 0 || keyChanged || shapeChanged
+        ? null
+        : [...slotsRef.current.values()]
 
     const result = buildFingerAnimations(
       inUse && inUse.length > 0 ? inUse : null,
@@ -87,7 +100,7 @@ export function useAnimatedFingerMarkers(
     )
 
     slotsRef.current = snapshotFromMarkers(current)
-    frameCacheRef.current = { key: transitionKey, frame: result }
+    frameCacheRef.current = { key: transitionKey, shape, frame: result }
     return result
   }, [enabled, transitionKey, shape, dotRadius, anchorGridTopY, metrics])
 
